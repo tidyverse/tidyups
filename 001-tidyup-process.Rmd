@@ -1,0 +1,93 @@
+# Tidyup 1: the tidyup proposal process
+
+**Champion**: Hadley\
+**Status**: Proposal
+
+## Abstract
+
+## Motivation
+
+For bigger architectural changes, particularly those that span multiple packages or are likely to affect larger number of users, we need a process to clearly document the problem, possible solutions, our decisions, and to get feedback from the community.
+
+## Solution
+
+### Process
+
+1.  Member of tidyverse team raises idea in weekly meeting.
+    If no objections, begins to write up formal proposal.
+    (Would consider how to invite community participation in the future).
+
+2.  Write up .Rmd and submit to {SOME REPO}.
+    Book discussion in tidyverse weekly meeting.
+
+3.  Present to team, and collect discussion items.
+    Update doc.
+
+4.  Share with public via twitter and r-devel?.
+    Where to discuss?
+    Level of publicity to community would depend on specific case.
+
+    1.  Not email.
+        GitHub?
+
+5.  What is the scope?
+
+    1.  string sorting vec_order/arrange
+
+    2.  dplyr + vctrs integration
+
+    3.  tidyselect changes
+
+    4.  annotations (strictness, laziness, types, ...)
+
+    5.  case weights
+
+    6.  colspec
+
+    7.  Converting magrittr pipe to laziness
+
+    8.  new packages that would perceived to be direct competitors to existing package (e.g. clock)
+
+    9.  Only involve a single package
+
+        1.  pivot_longer/pivot_wider
+
+        2.  across --- also used in packages outside of the tidyverse
+
+        3.  testthat 3rd edition
+
+    10. Don't need widespread discussion, but we need to write up
+
+        1.  name repair
+
+        2.  tidyverse recycling rules
+
+        3.  ellipsis, tidy dots, ...
+
+        4.  R version support
+
+### Document specification
+
+Each tidyup should have the following parts/sections:
+
+-   **Metadata**: short title, tidyup number, name of champion.
+
+    -   Status can be one of draft, accepted, declined. Accepted = design is complete; final = implemented (i.e. code merged).
+
+-   **Abstract**: short description of issue and proposed solution.
+    Should allow the reader to determine if this is of interest to them and if they should keep reading.
+
+-   **Motivation**: why does the change need to happen.
+
+-   **Solution:** proposed solution(s).
+
+-   **Reference implementation**: once status is accepted, link to PR.
+
+-   **Rationale**: why was this solution picked?
+    What other solutions were considered.
+
+-   **Open issues**: while proposal is in process, record open issues that don't yet have solutions.
+
+-   **Backwards compatibility**
+
+-   **How to teach**
