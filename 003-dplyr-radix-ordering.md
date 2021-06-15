@@ -72,8 +72,8 @@ bench::mark(
     ## # A tibble: 2 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base          1.67s    1.67s     0.600    3.89MB      0  
-    ## 2 vctrs       16.31ms   19.5ms    50.5      12.7MB     20.8
+    ## 1 base          1.11s    1.11s     0.904    3.89MB      0  
+    ## 2 vctrs       14.26ms  16.25ms    56.7      12.7MB     23.9
 
 ``` r
 # Force `vec_order()` to use the American English locale, which is also
@@ -108,8 +108,8 @@ bench::mark(
     ## # A tibble: 2 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base          6.77s    6.77s     0.148    3.81MB     0   
-    ## 2 vctrs      642.58ms 642.58ms     1.56    20.18MB     1.56
+    ## 1 base           5.5s     5.5s     0.182    3.81MB     0   
+    ## 2 vctrs       586.4ms  586.4ms     1.71    20.18MB     1.71
 
 ``` r
 bench::mark(
@@ -120,7 +120,7 @@ bench::mark(
     ## # A tibble: 1 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 sort_key      638ms    638ms      1.57    7.63MB        0
+    ## 1 sort_key      594ms    594ms      1.68    7.63MB        0
 
 In dplyr, we’d like to utilize `vec_order()` while breaking as little
 code as possible. Switching to `vec_order()` has many potential positive
@@ -310,7 +310,9 @@ uses a non-English locale. Lastly, it would require an additional
 learning curve for users to understand how to use them in conjunction
 with `arrange()`.
 
-## Addendum
+## Changelog
+
+### 2021-06-14
 
 The tidyverse group meeting of 2021-06-14 resulted in a number of new
 discussion points. In particular, it was discussed that forcing the
