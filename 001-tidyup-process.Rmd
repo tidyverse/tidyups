@@ -1,6 +1,10 @@
+---
+output: github_document
+---
+
 # Tidyup 1: the tidyup proposal process
 
-**Champion**: Hadley\
+**Champion**: Hadley Wickham   
 **Status**: Proposal
 
 ## Abstract
@@ -27,8 +31,7 @@ For bigger architectural changes, particularly those that span multiple packages
     Where to discuss?
     Level of publicity to community would depend on specific case.
 
-    1.  Not email.
-        GitHub?
+    1.  Not email. GitHub?
 
 5.  What is the scope?
 
