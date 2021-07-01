@@ -41,21 +41,22 @@ with some substantial downsides:
 
 ### Process
 
-1.  Start by raising idea in tidyverse slack or weekly meeting. If
-    there’s broad agreement that the scope and timing is right, proceed
-    to the next step.
+1.  **Propose**. Start by raising idea in tidyverse slack or weekly
+    meeting. If there’s broad agreement that the scope and timing is
+    right, proceed to the next step.
 
-2.  Create an `.Rmd` (using sections defined below) and submit PR to
-    <http://github.com/tidyverse/tidyups>. Using a PR makes it easy for
-    others to comment on the initial proposal. Once you’re happy with
-    the write up, and one other person has reviewed it, proceed to the
-    next step.
+2.  **Write up**. Create an `.Rmd` (using sections defined below) and
+    submit PR to <http://github.com/tidyverse/tidyups>. Using a PR makes
+    it easy for others to comment on the initial proposal. Once you’re
+    happy with the write up, and one other person has reviewed it,
+    proceed to the next step.
 
-3.  Book a discussion in the tidyverse weekly meeting. Prepare a brief
-    overview to talk through. While the meeting is fresh in your head,
-    review the meeting notes, updating the write up where needed, making
-    changes or adding clarifications where needed. If major changes have
-    been made, add the previous approach to the “alternatives” section.
+3.  **Discuss**. Book a discussion in the tidyverse weekly meeting.
+    Prepare a brief overview to talk through. While the meeting is fresh
+    in your head, review the meeting notes, updating the write up where
+    needed, making changes or adding clarifications where needed. If
+    major changes have been made, add the previous approach to the
+    “alternatives” section.
 
     1.  If the proposal needs more discussion, repeat this step.
 
@@ -65,20 +66,20 @@ with some substantial downsides:
     (Depending on the complexity of implementation, the next two steps
     can be completed in either order)
 
-4.  Create a blog post from the body of the tidyup. Advertise when the
-    review period ends and the best way to provide feedback. Once the
-    review period ends, update the tidyup with clarifications and
-    changes. Again, if major changes are made include the previous
-    iterations in the “alternatives” section.
+4.  **Community feedback**. Create a blog post from the body of the
+    tidyup. Advertise when the review period ends and the best way to
+    provide feedback. Once the review period ends, update the tidyup
+    with clarifications and changes. Again, if major changes are made
+    include the previous iterations in the “alternatives” section.
 
-5.  Create a reference implementation in one or more PRs to the
-    appropriate repos. Update the tidy with a link to all PRs.
+5.  **Implement**. Create a reference implementation in one or more PRs
+    to the appropriate repos. Update the tidy with a link to all PRs.
 
-6.  Once both previous steps are completed, book another tidyverse
-    meeting for final sign off.
+6.  **Final review**. Once both previous steps are completed, book
+    another tidyverse meeting for final sign off. Before meeting, ensure
 
-7.  Merge implementation PRs into affected repos then change tidyup
-    status to “implemented”.
+7.  **Complete.** Merge implementation PRs into affected repos then
+    change tidyup status to “implemented”.
 
 ### Sections
 
@@ -101,24 +102,31 @@ take in a new tidyup at a glance.
     and whether or not to keep reading.
 
 -   **Motivation**. What are we doing now and why does it need to
-    change?
+    change? This can be long of short depending on the “obviousness” of
+    the problem, how much work is needed to fix it, and whether or not
+    the solution will require breaking changes.
 
--   **Solution.** proposed solution(s).
-
--   **Alternatives**. Why was this solution picked? What other solutions
-    were considered. If discussion generates major changes, move the
-    previous approach here.
-
--   **Reference implementation**. once status is accepted, link to PR.
+-   **Solution.** A description of the proposed solution, or solutions
+    if there are multiple to consider. There should be enough detail to
+    guide an implementation. Break this up into subsections in whatever
+    way makes sense for the proposal.
 
 -   **Open issues**: While proposal is in process, record open issues
-    that don’t yet have solutions.
+    that require further discussion.
+
+-   **Alternatives**. Why was this solution picked? What other solutions
+    were considered? If discussion generates major changes, describe
+    previous approaches here.
+
+-   **Reference implementation**. Once available, provide a link to any
+    PR (or PRs) that implement the proposal.
 
 -   **Backwards compatibility**. What implications does this change have
     for backward compatibility? How can any negative affects be
     ameliorated?
 
--   **How to teach**
+-   **How to teach.** If the change is likely to affect user code,
+    include a section briefly discussing how and when to teach.
 
 ### Scope
 
