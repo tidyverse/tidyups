@@ -41,24 +41,44 @@ with some substantial downsides:
 
 ### Process
 
-1.  Start by raising idea in tidyverse slack or weekly meeting.
+1.  Start by raising idea in tidyverse slack or weekly meeting. If
+    there’s broad agreement that the scope and timing is right, proceed
+    to the next step.
 
-2.  If no objections, create .Rmd (using template below) and submit PR
-    to <http://github.com/tidyverse/tidyups>. Using a PR makes it easy
-    for others to comment on the initial proposal.
+2.  Create an `.Rmd` (using sections defined below) and submit PR to
+    <http://github.com/tidyverse/tidyups>. Using a PR makes it easy for
+    others to comment on the initial proposal. Once you’re happy with
+    the write up, and one other person has reviewed it, proceed to the
+    next step.
 
-3.  Once write up is complete, book discussion in tidyverse weekly
-    meeting. Prepare a brief overview (working from the tidyup itself)
-    and collect discussion items.
+3.  Book a discussion in the tidyverse weekly meeting. Prepare a brief
+    overview to talk through. While the meeting is fresh in your head,
+    review the meeting notes, updating the write up where needed, making
+    changes or adding clarifications where needed. If major changes have
+    been made, add the previous approach to the “alternatives” section.
 
-4.  When does PR get merged?
+    1.  If the proposal needs more discussion, repeat this step.
 
-5.  Share with public via twitter and r-devel?. Where to discuss? GitHub
-    issues? Mailing list? Level of publicity to community would depend
-    on specific case.
+    2.  If the proposal is ready for public discussion, proceed to the
+        next step.
 
-6.  How to finish? Need to merge PR with implementation and then update
-    status in tidyup repo?
+    (Depending on the complexity of implementation, the next two steps
+    can be completed in either order)
+
+4.  Create a blog post from the body of the tidyup. Advertise when the
+    review period ends and the best way to provide feedback. Once the
+    review period ends, update the tidyup with clarifications and
+    changes. Again, if major changes are made include the previous
+    iterations in the “alternatives” section.
+
+5.  Create a reference implementation in one or more PRs to the
+    appropriate repos. Update the tidy with a link to all PRs.
+
+6.  Once both previous steps are completed, book another tidyverse
+    meeting for final sign off.
+
+7.  Merge implementation PRs into affected repos then change tidyup
+    status to “implemented”.
 
 ### Sections
 
@@ -73,7 +93,8 @@ take in a new tidyup at a glance.
     -   **Champion**: each tidyup must be championed by a member of the
         tidyverse team.
 
-    -   **Status:** draft, design approved, implemented, or declined.
+    -   **Status:** draft, design approved (internal), design approved
+        (external), implemented, or declined.
 
 -   **Abstract**. Short description of issue and proposed solution.
     Should allow the reader to determine if this is of interest to them
@@ -84,10 +105,11 @@ take in a new tidyup at a glance.
 
 -   **Solution.** proposed solution(s).
 
--   **Reference implementation**. once status is accepted, link to PR.
+-   **Alternatives**. Why was this solution picked? What other solutions
+    were considered. If discussion generates major changes, move the
+    previous approach here.
 
--   **Rationale**. Why was this solution picked? What other solutions
-    were considered.
+-   **Reference implementation**. once status is accepted, link to PR.
 
 -   **Open issues**: While proposal is in process, record open issues
     that don’t yet have solutions.
