@@ -62,8 +62,11 @@ Contributors who have made significant and sustained contributions
 #### Authors
 
 Authors are collectively responsible for day-to-day development of the
-package, including responding to issues and reviewing pull requests. An
-author is identified in two ways:
+package, including responding to issues and reviewing pull requests.
+Authors are involved in most of the interactions with contributors and
+thus need to set a welcoming and inclusive tone for the project.
+
+An author is identified in two ways:
 
 -   They have write access on GitHub, which means that they can triage
     issues, request review on PRs, and merge them.
@@ -79,9 +82,10 @@ breaking changes) must also be approved by the maintainer.
 
 Authors are recruited from contributors. An invitation to join the
 authors can be extended to anyone who has made significant and sustained
-contributions. Any existing author can propose a contributor be invited
-team by emailing the maintainer. The project lead will the confirm the
-invitation with the other authors before extending the invite.
+contributions, and has acted in accordance with the code of conduct. Any
+existing author can propose a contributor be invited team by emailing
+the maintainer. The project lead will the confirm the invitation with
+the other authors before extending the invite.
 
 #### Maintainer
 
