@@ -1,0 +1,120 @@
+
+# Tidyup 4: governance model
+
+**Champion**: Hadley Wickham  
+**Status**: Proposal
+
+## Abstract
+
+## Motivation
+
+## Solution
+
+This document describes a default governance model to use for all open
+source RStudio repositories (starting with r-lib, tidyverse, and
+tidymodels). It is not mandatory, but it has been designed to reflect
+our current practices, and should be used unless there are strong
+reasons to favour a different model for an individual repo.
+
+This is heavily adapted version of the [Benevolent dictator governance
+model](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel)
+by Ross Gardler and Gabriel Hanganu licensed under a Creative Commons
+Attribution-ShareAlike 4.0 International License.
+
+### Roles
+
+There are four key roles: a large community of **users,** a smaller
+community of **contributors**, a team of **authors**, and a
+**maintainer**. All roles are bound by the code of conduct.
+
+#### Users
+
+People who use the package are the most important members of the
+community; without these users, this project would have no purpose.
+Users are encouraged to participate in the life of the project and the
+community as much as possible as user contributions help ensure that the
+project is useful.
+
+Common user activities include (but are not limited to):
+
+-   Evangelising about the project.
+-   Asking and answering questions on community forums.
+-   Providing moral support (a ‘thank you’ goes a long way).
+
+Users who continue to engage with the project and its community will
+often find themselves becoming more and more involved. Such users may
+then go on to become contributors, as described below.
+
+#### Contributors
+
+Contributors interact with the project on GitHub by filing new issues,
+improving existing issues, or submitting pull requests. Anyone can
+become a contributor: there is no expectation of commitment to the
+project, no required set of skills, and no selection process.
+
+Contributors are not individually listed in the package source, but are
+acknowledged in blog posts, via `usethis::use_tidy_thanks()` which
+consults the GitHub API.
+
+Contributors who have made significant and sustained contributions
+(either through code or otherwise) can be invited to become authors.
+
+#### Authors
+
+Authors are collectively responsible for day-to-day development of the
+package, including responding to issues and reviewing pull requests. An
+author is identified in two ways:
+
+-   They have write access on GitHub, which means that they can triage
+    issues, request review on PRs, and merge them.
+
+-   They are listed in Authors@R, which means that receive credit when
+    others cite the package.
+
+While authors can modify code directly, this ability is should be used
+as rarely as possible. Instead, we prefer a workflow where changes are
+proposed as pull requests, and are only merged after they have been
+reviewed by at least one other author[1]. Changes to the API (especially
+breaking changes) must also be approved by the maintainer.
+
+Authors are recruited from contributors. An invitation to join the
+authors can be extended to anyone who has made significant and sustained
+contributions. Any existing author can propose a contributor be invited
+team by emailing the maintainer. The project lead will the confirm the
+invitation with the other authors before extending the invite.
+
+#### Maintainer
+
+The maintainer:
+
+-   Setting and clearly communication the strategic objectives of the
+    project.
+-   Over-seeing CRAN releases (possibly by asking an author to lead the
+    release).
+-   Mediating any conflicts amongst the authors.
+-   Enforcing the code of conduct.
+-   Ensuring that the project survives in the long term by finding a new
+    maintainer when they are ready to move on.
+
+The maintainer is identified by the “cre” (creator) role in Authors@R.
+
+For the many of our open source repositories, the maintainer is member
+of one of the RStudio open source teams. There is a tension between
+making development open to all and ensuring that packages are maintained
+in the long term (i.e. 10+ years). Where the maintainer is not an
+employee of RStudio, we ask for the “right of first refusal” — if the
+maintainer wants to stop maintaining the package (for whatever reason)
+they first offer it back to RStudio.
+
+### Decision-making process
+
+This project makes decisions according to a consensus model where
+suggestions are considered and discussed between the community and core
+developers, typically in GitHub issues. Where consensus cannot be
+reached, the project lead’s word is final. If the community questions a
+decision, the project lead may review it and either uphold or reverse
+it.
+
+[1] There are some exceptions to this rule, particularly for very new
+packages (where API iteration is much faster) and packages with only one
+author.
