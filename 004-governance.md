@@ -115,6 +115,36 @@ reached, the project lead’s word is final. If the community questions a
 decision, the project lead may review it and either uphold or reverse
 it.
 
+### Author invitation template
+
+(Probably should eventually become a usethis function)
+
+> Hi {name},
+>
+> In recognition of your significant contributions to {package}, would
+> you be interested in becoming a co-author of the package? This means
+> that you’ll be acknowledged in <Authors@R> and given write permission
+> on GitHub. Write permission gives you the power to change dbplyr
+> directly (which is fine for smaller fixes) but I’d appreciate it if
+> you’d continue to send major stuff through the pull request process.
+>
+> If you accept, can you please prepare a PR that:
+>
+> -   Adds your info to `Authors@R`
+> -   Tweaks `_pkgdown.yml` if you want to link somewhere from the
+>     pkgdown site
+> -   Advertises the change in NEWS.md
+> -   Re-builds the documentation to get updated package docs
+>
+> I’ll then add you as admin, and approve the PR, then you can
+> squash-merge it. This would be our workflow going forward. (You’ll
+> also be able to request reviews from me and &gt; other authors as
+> needed).
+>
+> Thanks for all your work on {package}!
+>
+> {your\_name}
+
 [1] There are some exceptions to this rule, particularly for very new
 packages (where API iteration is much faster) and packages with only one
 author.
