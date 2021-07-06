@@ -82,13 +82,24 @@ For the many of our open source repositories, the maintainer is member of one of
 There is a tension between making development open to all and ensuring that packages are maintained in the long term (i.e. 10+ years).
 Where the maintainer is not an employee of RStudio, we ask for the "right of first refusal" --- if the maintainer wants to stop maintaining the package (for whatever reason) they first offer it back to RStudio.
 
-### Decision-making process
+## Processes
+
+### Code contribution
+
+Usually via PR, even for authors.
+Particularly high-stakes project may want to protect the master branch and require "request reviews before merging".
+
+Merge-squash unless big PR where author has carefully crafted commits.
+
+### Decision-making
 
 This project makes decisions according to a consensus model where suggestions are considered and discussed between the community and core developers, typically in GitHub issues.
-Where consensus cannot be reached, the project lead's word is final.
-If the community questions a decision, the project lead may review it and either uphold or reverse it.
+Where consensus cannot be reached, the maintainer's word is final.
+If the community questions a decision, the maintainer may review it and either uphold or reverse it.
 
-### Author invitation template
+### Author invitation
+
+Maintainer emails all other authors, assuming no major concerns, then emails candidate:
 
 (Probably should eventually become a usethis function)
 
@@ -107,7 +118,7 @@ If the community questions a decision, the project lead may review it and either
 >
 > I'll then add you as admin, and approve the PR, then you can squash-merge it.
 > This would be our workflow going forward.
-> (You'll also be able to request reviews from me and \> other authors as needed).
+> (You'll also be able to request reviews from me and other authors as needed).
 >
 > Thanks for all your work on {package}!
 >
