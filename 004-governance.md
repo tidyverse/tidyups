@@ -8,26 +8,47 @@
 
 ## Motivation
 
+We currently have one package (ggplot2) with a [formal governance
+model](https://github.com/tidyverse/ggplot2/blob/master/GOVERNANCE.md),
+and an informal, undocumented model that we’ve used for other packages
+(e.g. dtplyr, dbplyr). Goal is to come up with holistic, flexible model,
+that can become our default governance model for all packages going
+forward. This is part of a general movement to get better at defining
+and documenting our processes to so that there’s a clear path (if steep
+at times!) from package user to package developer.
+
 ## Solution
 
-This document describes a default governance model to use for all open
-source RStudio repositories (starting with r-lib, tidyverse, and
-tidymodels). It is not mandatory, but it has been designed to reflect
-our current practices, and should be used unless there are strong
-reasons to favour a different model for an individual repo.
+This document describes a default governance model to use for open
+source RStudio repositories (starting with those in the r-lib,
+tidyverse, and tidymodels organisations). It is not mandatory, but it
+has been designed to reflect our current best practices, and should be
+used unless there are compelling reasons to favour a different approach.
 
-This is heavily adapted version of the [Benevolent dictator governance
+Our model is inspired by (and heavily adapted from) the [benevolent
+dictator governance
 model](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel)
-by Ross Gardler and Gabriel Hanganu licensed under a Creative Commons
-Attribution-ShareAlike 4.0 International License.
+by Ross Gardler and Gabriel Hanganu. We have built on this model because
+we believe that packages are best shaped by a single voice, and few
+packages are of sufficient scope to benefit from team management.
 
-### Roles
+For maintainer of many of our open source repositories are RStudio
+employees. We want to acknowledge the a tension between making
+development open to all and ensuring that users can trust that a package
+will be maintained in the long term (i.e. 10+ years), which typically
+requires the maintainer be explicitly remunerated for their work. Where
+the maintainer is not an employee of RStudio, we ask for the “right of
+first refusal” — if the maintainer wants to stop maintaining the package
+(for whatever reason) they first offer it back to RStudio. In the
+future, we hope to find other ways of financial supporting maintainers
+apart from full-time employment.
 
-There are four key roles: a large community of **users,** a smaller
-community of **contributors**, a team of **authors**, and a
-**maintainer**. All roles are bound by the code of conduct.
+Our model includes four key roles that are described in details below: a
+large community of package **users,** a smaller pool of GitHub
+**contributors**, a team of **authors**, and a single **maintainer**.
+All roles are bound by the code of conduct.
 
-#### Users
+### Users
 
 People who use the package are the most important members of the
 community; without these users, this project would have no purpose.
@@ -39,101 +60,111 @@ Common user activities include (but are not limited to):
 
 -   Evangelising about the project.
 -   Asking and answering questions on community forums.
--   Providing moral support (a ‘thank you’ goes a long way).
+-   Providing moral support (a “thank you” goes a long way).
+
+### Contributors
 
 Users who continue to engage with the project and its community will
 often find themselves becoming more and more involved. Such users may
-then go on to become contributors, as described below.
+then go on to become **contributors** by interacting with the project on
+GitHub. Contributors:
 
-#### Contributors
+-   Report bugs and suggest improvements by creating new issues.
 
-Contributors interact with the project on GitHub by filing new issues,
-improving existing issues, or submitting pull requests. Anyone can
-become a contributor: there is no expectation of commitment to the
-project, no required set of skills, and no selection process.
+-   Improving existing issues by answering questions, creating reprexes,
+    or providing feedback on proposed changes.
 
-Contributors are not individually listed in the package source, but are
-acknowledged in blog posts, via `usethis::use_tidy_thanks()` which
-consults the GitHub API.
+-   Contributing code or documentation via pull requests.
 
-Contributors who have made significant and sustained contributions
-(either through code or otherwise) can be invited to become authors.
+Anyone can become a contributor: there is no expectation of commitment
+to the project, no required set of skills, and no selection process. We
+do not maintain an explicit list of contributors but acknowledge them in
+blog posts using `usethis::use_tidy_thanks()`, which gathers
+contribution data from the GitHub API.
 
-#### Authors
+### Authors
 
-Authors are collectively responsible for day-to-day development of the
-package, including responding to issues and reviewing pull requests.
-Authors are involved in most of the interactions with contributors and
-thus need to set a welcoming and inclusive tone for the project.
+Contributors who have made significant and sustained contributions can
+be invited to become authors. Authors are collectively responsible for
+day-to-day development of the package, including responding to issues
+and reviewing pull requests. An author possesses two special powers:
 
-An author is identified in two ways:
+-   They have **write** access on GitHub so they can triage issues,
+    request review on PRs, and merge them.
 
--   They have write access on GitHub, which means that they can triage
-    issues, request review on PRs, and merge them.
+-   They are listed in `Authors@R` so they receive credit when others
+    cite the package.
 
--   They are listed in Authors@R, which means that receive credit when
-    others cite the package.
+Authors are expected to follow our standard processes, such as:
 
-While authors can modify code directly, this ability is should be used
-as rarely as possible. Instead, we prefer a workflow where changes are
-proposed as pull requests, and are only merged after they have been
-reviewed by at least one other author[1]. Changes to the API (especially
-breaking changes) must also be approved by the maintainer.
+-   **Code contribution**: code is usually contributed via PR, even for
+    authors who could push directly. Particularly high-stakes project
+    may want to protect the main branch and require “request reviews
+    before merging”.
+
+-   **Communication**: authors are involved in most of the interactions
+    with contributors and thus need to set a welcoming and inclusive
+    tone for the project.
+
+-   **PR review**: all pull requests should be reviewed by at least one
+    other author. PRs are usually squashed-merged so that individual
+    contributors don’t need to worry about maintaining a clean history.
+
+-   **Backward compatibility**: any backward incompatible changes
+    (i.e. changes that cause reverse dependencies to fail `R CMD check`
+    or are likely to cause problems in user code) must be approved by
+    the maintainer. Significant backward incompatible changes need to be
+    accompanied with a plan for how they will be communicated to the
+    community.
+
+-   **CRAN releases**: package releases are made on an as-needed basis,
+    and increment either the major, minor, or patch version depending on
+    the scope of the release. The process itself is defined by
+    `usethis::use_release_issue()`.
+
+-   **Decision making:** decisions are made using a consensus model
+    where authors and contributors consider and discuss decisions in
+    GitHub issues. The maintainer reserves the right to make a final
+    decision in contentious cases. If the community questions a
+    decision, the maintainer may review it and either uphold or reverse
+    it.
+
+(We expect to flesh these processes out in the coming months.)
 
 Authors are recruited from contributors. An invitation to join the
 authors can be extended to anyone who has made significant and sustained
 contributions, and has acted in accordance with the code of conduct. Any
 existing author can propose a contributor be invited team by emailing
-the maintainer. The project lead will the confirm the invitation with
-the other authors before extending the invite.
+the maintainer.
 
-#### Maintainer
+### Maintainer
 
-The maintainer:
+A maintainer is the author with primary responsibility for the project.
+As well as the responsibilities of an author, they also:
 
--   Setting and clearly communication the strategic objectives of the
+-   Set and clearly communicates the strategic objectives of the
     project.
--   Over-seeing CRAN releases (possibly by asking an author to lead the
-    release).
--   Mediating any conflicts amongst the authors.
--   Enforcing the code of conduct.
--   Ensuring that the project survives in the long term by finding a new
-    maintainer when they are ready to move on.
+-   Oversee CRAN releases.
+-   On-board new authors.
+-   Mediate conflicts amongst authors.
+-   Enforce the code of conduct.
+-   Recruit a new maintainer when ready to retire from the project.
 
-The maintainer is identified by the “cre” (creator) role in Authors@R.
+The maintainer is listed in `Authors@R`. They must list their email
+address and be identified by the “cre” (creator) role. They have
+**admin** access on Github, allowing them to add new authors when
+needed.
 
-For the many of our open source repositories, the maintainer is member
-of one of the RStudio open source teams. There is a tension between
-making development open to all and ensuring that packages are maintained
-in the long term (i.e. 10+ years). Where the maintainer is not an
-employee of RStudio, we ask for the “right of first refusal” — if the
-maintainer wants to stop maintaining the package (for whatever reason)
-they first offer it back to RStudio.
+Maintainer turnover is slow and we have not yet developed a process for
+it, but we’d generally expect a maintainer to be a long-standing author.
 
-## Processes
+### Common tasks
 
-### Code contribution
+#### Author invitation
 
-Usually via PR, even for authors. Particularly high-stakes project may
-want to protect the master branch and require “request reviews before
-merging”.
-
-Merge-squash unless big PR where author has carefully crafted commits.
-
-### Decision-making
-
-This project makes decisions according to a consensus model where
-suggestions are considered and discussed between the community and core
-developers, typically in GitHub issues. Where consensus cannot be
-reached, the maintainer’s word is final. If the community questions a
-decision, the maintainer may review it and either uphold or reverse it.
-
-### Author invitation
-
-Maintainer emails all other authors, assuming no major concerns, then
-emails candidate:
-
-(Probably should eventually become a usethis function)
+To on-board a new author, the maintainer first emails all other authors,
+checking for any major concerns. If all authors are agreeable (or don’t
+response within 7 days), the maintainer then sends the following email:
 
 > Hi {name},
 >
@@ -160,6 +191,5 @@ emails candidate:
 >
 > {your\_name}
 
-[1] There are some exceptions to this rule, particularly for very new
-packages (where API iteration is much faster) and packages with only one
-author.
+(After this tidyup is approved, the template will become a usethis
+function.)
