@@ -331,14 +331,3 @@ the problem of avoiding breakage for existing code that uses a
 non-English locale. Lastly, it would require an additional learning
 curve for users to understand how to use them in conjunction with
 `arrange()`.
-
-## Changelog
-
-### 2021-06-14
-
-In the tidyverse group meeting of 2021-06-14, it was discussed that
-forcing the American English locale with no way to globally override
-this was probably a bit too aggressive. This proposal has been updated
-with a `tidyverse.locale_collation` global option, along with a new
-`dplyr_locale()` helper which together provide a way to globally set a
-different locale.

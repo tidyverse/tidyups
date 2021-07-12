@@ -163,9 +163,3 @@ Another alternative is to default `arrange()` to the C locale, while still allow
 ### Tagged character vectors
 
 A final proposed alternative is to implement a "tagged" character vector class, with an additional attribute specifying the locale to be used when ordering. This would remove the need for any `.locale` argument, and the locale would even be allowed to vary between columns. If no locale tag was supplied, `arrange()` would default to either `"en"` or `"C"` for the locale. This approach is relatively clean, but is practically very difficult because it would require cross package effort to generate and retain these locale tags. Additionally, it doesn't solve the problem of avoiding breakage for existing code that uses a non-English locale. Lastly, it would require an additional learning curve for users to understand how to use them in conjunction with `arrange()`.
-
-## Changelog
-
-### 2021-06-14
-
-In the tidyverse group meeting of 2021-06-14, it was discussed that forcing the American English locale with no way to globally override this was probably a bit too aggressive. This proposal has been updated with a `tidyverse.locale_collation` global option, along with a new `dplyr_locale()` helper which together provide a way to globally set a different locale.
