@@ -157,14 +157,10 @@ of users, it is proposed that the data frame method for `arrange()` gain
 a new argument, `.locale`, with the following properties:
 
 -   Defaults to `dplyr_locale()`, see below.
-
-<!-- -->
-
 -   If stringi is installed, allow a string locale identifier, such as
     `"fr"` for French, for explicitly adjusting the locale. If stringi
     is not installed, and the user has explicitly specified a locale
     identifier, an error will be thrown.
-
 -   Allow `"C"` to be specified as a special case, which is an explicit
     way to request the C locale. If the exact details of the ordering
     are not critical, this is often much faster than specifying a locale
@@ -197,9 +193,8 @@ a global option can decrease reproducibility between sessions, in this
 case the benefits of it outweigh the costs.
 
 On certain systems, stringi can be a difficult dependency to install.
-Because of this, this proposal recommends that stringi be a suggested
-dependency of dplyr, to ensure that users without access to stringi can
-still use dplyr.
+Because of this, this proposal recommends that stringi only be
+*suggested* so that users without stringi can still use dplyr.
 
 This proposal relies on `stringi::stri_sort_key()`, which generates the
 sort key mentioned under Motivation as a proxy that can be ordered in
