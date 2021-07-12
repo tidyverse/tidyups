@@ -38,20 +38,29 @@ many practical applications for data science, a radix order-based
     direction on a per column basis.
 
 -   Support for an optional character transformation function, which
-    generates an intermediate *sort key*. When sorted in the C locale,
-    the sort key returns an ordering that would be equivalent to sorting
-    the original vector in an alternate locale.
+    generates an intermediate *sort key* that is unique to a particular
+    locale. When sorted in the C locale, the sort key returns an
+    ordering that would be equivalent to directly sorting the original
+    vector in the locale that the sort key was generated for.
+
+It is worth looking at a quick example that demonstrates just how fast
+this radix ordering algorithm is when compared against the defaults of
+`order()`.
 
 ``` r
 library(stringi)
-vec_order <- vctrs:::vec_order_radix
+library(vctrs) # r-lib/vctrs#1375
 set.seed(123)
 
 # 10,000 random strings, sampled to a total size of 1,000,000
 n_unique <- 10000L
 n_total <- 1000000L
 
-dictionary <- stri_rand_strings(n = n_unique, length = sample(1:30, n_unique, replace = TRUE))
+dictionary <- stri_rand_strings(
+  n = n_unique, 
+  length = sample(1:30, n_unique, replace = TRUE)
+)
+
 x <- sample(dictionary, size = n_total, replace = TRUE)
 
 head(x)
@@ -72,31 +81,14 @@ bench::mark(
     ## # A tibble: 2 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base          1.11s    1.11s     0.904    3.89MB      0  
-    ## 2 vctrs       14.26ms  16.25ms    56.7      12.7MB     23.9
+    ## 1 base          1.61s    1.61s     0.621    3.89MB      0  
+    ## 2 vctrs       18.22ms  20.77ms    46.9     12.71MB     21.9
 
 ``` r
 # Force `vec_order()` to use the American English locale, which is also
 # my system locale. To do that we'll need to generate a sort key, which
 # we can sort in the C locale, but the result will be like we sorted
 # directly in the American English locale.
-stri_sort_key(head(x), locale = "en_US")
-```
-
-    ## [1] "TV\\x1dTD\\x01\\x09\\x01\\xc5\\xe0\\xc5\\xdc\\xdc"                                                                    
-    ## [2] "J0DD\\2B2V\\x15NX0F*JN@\\\\x15B<.\\x19,6R:XR\\x01\"\\x01\\xc4\\xdc\\xdc\\xc3\\xdc\\xc3\\xdc\\xc1\\xdc\\xc3\\xdc\\xc3\\xdc\\xc3\\xdc\0"
-    ## [3] "B@<>TR\\D<LH\\x01\\x0f\\x01\\xc3\\xdc\\xc2\\xdc\\xdc\\xdc"                                                             
-    ## [4] "\\x17\\x17V@X!@\\x01\\x0b\\x01\\xc3\\xdc\\xdc\\xc5\\xdc"                                                               
-    ## [5] "V.:\\\\x1dHN%\\x19>LR.\\x01\\x11\\x01\\xc4\\xdc\\xc4\\xdc\\xdc\\xc3\\xdc\\xdc\\xdc"                                         
-    ## [6] "\\x17ZZ\\x13%>4F><JF,VRBDR*N..0\\x01\\x1b\\x01\\xc1\\xdc\\xc2\\xe0\\xc5\\xdc\\xc2\\xdc\\xc3\\xdc\\xdc"
-
-``` r
-Sys.getlocale("LC_COLLATE")
-```
-
-    ## [1] "en_US.UTF-8"
-
-``` r
 bench::mark(
   base = order(x),
   vctrs = vec_order(x, chr_transform = ~stri_sort_key(.x, locale = "en_US"))
@@ -108,19 +100,22 @@ bench::mark(
     ## # A tibble: 2 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base           5.5s     5.5s     0.182    3.81MB     0   
-    ## 2 vctrs       586.4ms  586.4ms     1.71    20.18MB     1.71
+    ## 1 base          6.48s    6.48s     0.154    3.81MB     0   
+    ## 2 vctrs      642.76ms 642.76ms     1.56    20.21MB     3.11
 
 ``` r
+# Generating the sort key takes most of the time
 bench::mark(
   sort_key = stri_sort_key(x, locale = "en_US")
 )
 ```
 
+    ## Warning: Some expressions had a GC in every iteration; so filtering is disabled.
+
     ## # A tibble: 1 x 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 sort_key      594ms    594ms      1.68    7.63MB        0
+    ## 1 sort_key      656ms    656ms      1.53    7.63MB     1.53
 
 In dplyr, we’d like to utilize `vec_order()` while breaking as little
 code as possible. Switching to `vec_order()` has many potential positive
@@ -128,12 +123,14 @@ impacts, including:
 
 -   Improved performance when ordering character vectors.
 
-    -   Improved overall performance when ordering character vectors
-        alongside other atomic types.
+    -   Which also results in improved overall performance when ordering
+        character vectors alongside other atomic types, since it would
+        no longer cause the whole procedure to fall back to a shell
+        sort.
 
--   Improved reproducibility across sessions by removing a dependency on
-    an environment variable, `LC_COLLATE`, which is used by `order()` to
-    determine the locale.
+-   Improved reproducibility across sessions by ensuring that the
+    default behavior doesn’t depend on an environment variable,
+    `LC_COLLATE`, which is used by `order()` to determine the locale.
 
 -   Improved reproducibility across OSes where `LC_COLLATE` might
     differ, even for the same locale. For example, `"en_US"` on a Mac is
@@ -159,29 +156,50 @@ To switch to `vec_order()` internally while surprising the least amount
 of users, it is proposed that the data frame method for `arrange()` gain
 a new argument, `.locale`, with the following properties:
 
--   Default to `NULL`
-
-    -   If stringi is installed, the American English locale, `"en"`,
-        will be assumed.
-
-    -   Otherwise, the C locale will be used, with a warning informing
-        the user and encouraging them to silence the warning by either
-        installing stringi or specifying to use the C locale explicitly.
-
--   If stringi is installed, allow a single locale identifier, such as
-    `"fr"`, for explicitly adjusting the locale to order with. If
-    stringi is not installed, and the user has explicitly specified a
-    locale identifier, an error will be thrown.
-
+-   Defaults to `dplyr_locale()`, see below.
+-   If stringi is installed, allow a string locale identifier, such as
+    `"fr"` for French, for explicitly adjusting the locale. If stringi
+    is not installed, and the user has explicitly specified a locale
+    identifier, an error will be thrown.
 -   Allow `"C"` to be specified as a special case, which is an explicit
     way to request the C locale. If the exact details of the ordering
     are not critical, this is often much faster than specifying a locale
-    identifier.
+    identifier. This does not require stringi.
+
+`dplyr_locale()` would be a new exported helper function. Its purpose is
+to return a string containing the default locale to sort with. It has
+the following properties:
+
+-   If stringi is installed, the American English locale, `"en"`, is
+    used as the default.
+
+-   If stringi is not installed, the C locale, `"C"`, will be used. A
+    warning will be thrown informing the user of this fallback behavior,
+    and encouraging them to silence the warning by either installing
+    stringi or explicitly specifying `.locale = "C"`.
+
+-   Alternatively, to globally override the above default behavior, the
+    global option, `tidyverse.locale_collation`, can be set to either
+    `"C"` or a string locale identifier. Setting this to anything except
+    `"C"` would require stringi.
+
+American English has been chosen as the default solely because we
+believe it is the most used locale among R users, so it is the least
+likely to change existing results. That said, we understand that
+non-English speakers will not want to set the `.locale` argument *every
+time* they call `arrange()`, so the global option provides a way to
+change that default for their scripts. Feedback has indicated that while
+a global option can decrease reproducibility between sessions, in this
+case the benefits of it outweigh the costs.
+
+On certain systems, stringi can be a difficult dependency to install.
+Because of this, this proposal recommends that stringi only be
+*suggested* so that users without stringi can still use dplyr.
 
 This proposal relies on `stringi::stri_sort_key()`, which generates the
 sort key mentioned under Motivation as a proxy that can be ordered in
 the C locale. However, sort key generation is expensive. In fact, it is
-often the most expensive part of the entire process. That said,
+often the most expensive part of the entire sorting process. That said,
 generating a sort key + sorting it in the C locale is generally still
 5-10x faster than using `order()` directly. If performance is critical,
 users can specify `.locale = "C"` to get the maximum benefits of radix
@@ -191,7 +209,7 @@ ordering.
 
 -   Using `vec_order()` in `arrange()`, and adding `.locale`
 
-    -   <https://github.com/tidyverse/dplyr/pull/5868>
+    -   <https://github.com/tidyverse/dplyr/pull/5942>
 
 -   Renaming `vec_order_radix()` to `vec_order()`
 
@@ -206,71 +224,77 @@ preserving the results of programs using the American English locale,
 which is the most widely used locale in R, while sacrificing a bit of
 performance from the generation of the sort key.
 
-This proposal will impact non-English Latin script languages. For
-example, in a majority of Latin script languages, including `"en"`, ø
-(like *eu* in the French word *bleu*) sorts after o, but before
-p. However, a few languages, such as Danish, sort ø as a unique
-character after z. Danish users that have `LC_COLLATE` set to Danish may
-be surprised that `arrange()` would be placing ø in the “wrong order”
-even though they have set `LC_COLLATE` . The fix would be to set
-`.locale = "da"` in their calls to `arrange()`.
+That said, this proposal will impact non-English Latin script languages.
+For example, in a majority of Latin script languages, including `"en"`,
+ø sorts after o, but before p. However, a few languages, such as Danish,
+sort ø as a unique character after z. Danish users that have
+`LC_COLLATE` set to Danish may be surprised that `arrange()` would now
+be placing ø in the “wrong order” even though they have set that global
+option. The fix would be to either set `.locale = "da"` in their calls
+to `arrange()`, or to set `options(tidyverse.locale_collation = "da")`
+to override this default globally.
 
 ``` r
-sort_key_en <- function(x) stri_sort_key(x, locale = "en")
-sort_key_da <- function(x) stri_sort_key(x, locale = "da")
+library(dplyr) # tidyverse/dplyr#5942
+library(withr)
 
-x <- c("ø", "o", "p", "z")
+tbl <- tibble(x = c("ø", "o", "p", "z"))
 
-x[vec_order(x, chr_transform = sort_key_en)]
+# `"en"` default
+arrange(tbl, x)
 ```
 
-    ## [1] "o" "ø" "p" "z"
+    ## # A tibble: 4 x 1
+    ##   x    
+    ##   <chr>
+    ## 1 o    
+    ## 2 ø    
+    ## 3 p    
+    ## 4 z
 
 ``` r
-x[vec_order(x, chr_transform = sort_key_da)]
+# Set the locale in `arrange()` directly
+arrange(tbl, x, .locale = "da")
 ```
 
-    ## [1] "o" "p" "z" "ø"
-
-TODO: How exactly does this break non-Latin languages? Chinese?
-Japanese?
+    ## # A tibble: 4 x 1
+    ##   x    
+    ##   <chr>
+    ## 1 o    
+    ## 2 p    
+    ## 3 z    
+    ## 4 ø
 
 ### arrange\_at/if/all()
 
-These three variants of `arrange()` are superseded, and would not gain a
-`.locale` argument. They would inherit the `arrange()` default of
-`.locale = NULL` . Note that they would always warn about `.locale`
-falling back to C if stringi is not installed, with no way for the user
-to silence this by specifying `.locale = "C"` - *so it may be worth
-adding `.locale` anyways*, or just setting the default to `"C"`.
+While these three variants of `arrange()` are superseded, we have
+decided to add a `.locale` argument to each of them anyways.
 
-### Other order-related functions
+## Alternatives
 
-Within dplyr, there are two other direct places that `vec_order()` is
-called, `with_order()` and `grouped_df()`.
+### No global option
 
-`with_order()`, and through it, `order_by()`, `lag(order_by =)`, and
-`lead(order_by =)`, would all be affected by changing to a `vec_order()`
-that defaulted to the C locale. However, it is relatively uncommon to
-use the two window function helpers of `with_order()` and `order_by()`
-to order by a character vector. Additionally, it is also being proposed
-that rewrites of `lag()` and `lead()` drop their `order_by` arguments
-altogether. Because of this, no changes would be made to these functions
-to preserve backwards compatibility, and they would begin ordering
-character vectors in the C locale.
-
-`grouped_df()`, and through it, `group_by()` and many other grouping
-variants and methods, would also be affected from a switch to ordering
-in the C locale. The details related to this switch are complex enough
-for their own tidyup, and will not be discussed here.
-
-## Rationale and Alternatives
+The original proposal defaulted to the American English locale, but did
+not include a way to globally override this. This had the benefit of
+being more reproducible across sessions, since as long as stringi was
+installed it was guaranteed that the locale was always American English
+unless specified otherwise through `.locale`. However, in the tidyverse
+meeting on 2021-06-14 it was determined that not including a way to
+globally override this default was too aggressive of a change for
+non-English Latin script users. With a large script containing multiple
+calls to `arrange()`, each call would have to be updated. Additionally,
+if a function from a package that a user didn’t control called
+`arrange()` internally, then without a global option they would have no
+way to adjust the locale until that package author exposed the new
+`.locale` argument. Ultimately, in this case the benefits of the global
+option outweigh the potential reproducibility issues that might arise
+from it.
 
 ### Defaulting to the C locale
 
-One alternative to the above proposal is to default `arrange()` to the C
-locale, while still allowing users to specify `.locale` for ordering in
-alternative locales.
+Another alternative is to default `arrange()` to the C locale, while
+still allowing users to specify `.locale` for ordering in alternative
+locales.
 
 -   This has the benefit of making it clearer that stringi is an
     optional dependency, which would only be used if a user requests a
@@ -278,10 +302,7 @@ alternative locales.
     stringi.
 
 -   Additionally, the performance improvements would be even more
-    substantial since no sort key would be required by default.
-
--   Would also be consistent with `group_by()` if that started to use
-    the C locale by default.
+    substantial since no sort key would be generated by default.
 
 -   However, this would have the potential to alter nearly every call to
     `arrange()`, since the C locale is not identical to the American
@@ -290,59 +311,23 @@ alternative locales.
     in the American English locale letters are first grouped together
     regardless of capitalization, and then lowercase letters are placed
     before uppercase ones, like: `c(a, A, b, B)`. This may look like a
-    small difference, but it is enough to justify not defaulting to the
-    C locale.
+    small difference, but it would surprise enough users to justify not
+    defaulting to the C locale.
 
--   Also, not as consistent with stringr, which defaults to `"en"`.
+-   This is also not as consistent with stringr, which defaults to
+    `"en"`.
 
 ### Tagged character vectors
 
-A second proposed alternative was to implement a “tagged” character
-vector class, with an additional attribute specifying the locale to be
-used when ordering. This would remove the need for any `.locale`
-argument, and the locale would even be allowed to vary between columns.
-If no locale tag was supplied, `arrange()` would default to either
-`"en"` or `"C"` for the locale. This approach is relatively clean, but
-is practically very difficult because it would require cross package
-effort to generate and retain these locale tags. Additionally, it
-doesn’t solve the problem of avoiding breakage for existing code that
-uses a non-English locale. Lastly, it would require an additional
-learning curve for users to understand how to use them in conjunction
-with `arrange()`.
-
-## Changelog
-
-### 2021-06-14
-
-The tidyverse group meeting of 2021-06-14 resulted in a number of new
-discussion points. In particular, it was discussed that forcing the
-American English locale with no way to globally revert back to the old
-behavior was probably a bit too aggressive. To solve this, we are
-considering making a tidyverse wide environment/global variable that can
-influence the locale used by `arrange()`, while still keeping an English
-default. This would be an exception to our general process of avoiding
-global options that can affect computation, but might be worth it in
-this case since an English default could be extremely annoying to
-non-English users.
-
-It is worth considering whether this option should affect only dplyr, or
-if it should also affect stringr’s default. Additionally, it could
-affect readr and possibly lubridate/clock (if this locale also affects
-month names / weekday names).
-
-We could introduce one of the following options:
-
--   `TIDYVERSE_LOCALE` to control all things locale across the
-    tidyverse.
-
--   `DPLYR_LOCALE` to limit locale behavior to dplyr.
-
--   `TIDYVERSE_COLLATE` to limit it to only sorting behavior, as opposed
-    to date-specific options controlled by `LC_TIME`, like the month or
-    weekday names.
-
-Another option is to provide `.locale = "legacy"` which would fall back
-to using `base::order()` as `arrange()` currently does.
-
-The group also mentioned a few other non-English languages where an
-English default might be impactful: French, German, Czech, Danish.
+A final proposed alternative is to implement a “tagged” character vector
+class, with an additional attribute specifying the locale to be used
+when ordering. This would remove the need for any `.locale` argument,
+and the locale would even be allowed to vary between columns. If no
+locale tag was supplied, `arrange()` would default to either `"en"` or
+`"C"` for the locale. This approach is relatively clean, but is
+practically very difficult because it would require cross package effort
+to generate and retain these locale tags. Additionally, it doesn’t solve
+the problem of avoiding breakage for existing code that uses a
+non-English locale. Lastly, it would require an additional learning
+curve for users to understand how to use them in conjunction with
+`arrange()`.
