@@ -1,22 +1,22 @@
 
-# Tidyup 1: the tidyup proposal process
+# Tidyup 1: what is a tidyup?
 
 **Champion**: Hadley Wickham  
-**Status**: Proposal
+**Co-champion**: ???  
+**Status**: Draft
 
 ## Abstract
 
 For bigger architectural changes, particularly those that span multiple
 packages or are likely to affect larger number of users, we need a
-process to clearly document the problem, possible solutions, our
-decisions, and to get feedback from the community. This document
-describes a lightweight process for proposing changes and getting
-feedback on them that I call a **tidyup**.
+process to clearly document the problem, describe possible solutions,
+record our decisions, and to get feedback from the community. This
+document describes a lightweight process for proposing changes and
+getting feedback on them that I call a **tidyup**.
 
 For now, tidyups can only be proposed by members of the tidyverse team,
-but once we have more experience with the process we will to expand the
-program so that any one can member of the R community can make a
-proposal.
+but we will plan to open up the process to any member of the R community
+once we have a decent amount of experience with it.
 
 ## Motivation
 
@@ -24,10 +24,10 @@ To date, our process for making bigger changes has been relatively
 informal. This has made it easy for us to rapidly make changes but comes
 with some substantial downsides:
 
--   There’s no standard way to invite community contribution. This means
-    that we miss out on useful feedback from the community and can
-    generate ill-will when changes feel like they’ve been imposed with
-    no way to opt-out.
+-   There’s no standard way to invite feedback from the community. This
+    means that we miss out on useful feedback from the community and
+    makes it harder for folks outside the tidyverse team to feel like
+    they can influence development.
 
 -   It’s easy to lose track of alternatives proposed and discarded early
     in the process. This can lead to substantial repeated work if we
@@ -35,9 +35,13 @@ with some substantial downsides:
     solution.
 
 -   By keeping design decisions internal, interested external developers
-    can’t see “how the sausage is made” and learn from our experience.
+    can’t see “how the sausage is made” and learn from our experiences.
 
 ## Solution
+
+To solve this problem, I propose a lightweight framework called a
+tidyup. Tidyups follow a standard process that ultimately leads to an
+.Rmd in<https://github.com/tidyverse/tidyups>.
 
 ### Process
 
@@ -46,37 +50,34 @@ with some substantial downsides:
     right, proceed to the next step.
 
 2.  **Write up**. Create an `.Rmd` (using sections defined below) and
-    submit PR to <http://github.com/tidyverse/tidyups>. Using a PR makes
-    it easy for others to comment on the initial proposal. Once you’re
+    submit PR to <http://github.com/tidyverse/tidyups>. Once you’re
     happy with the write up, and one other person has reviewed it,
     proceed to the next step.
 
 3.  **Discuss**. Book a discussion in the tidyverse weekly meeting.
-    Prepare a brief overview to talk through. While the meeting is fresh
-    in your head, review the meeting notes, updating the write up where
-    needed, making changes or adding clarifications where needed. If
-    major changes have been made, add the previous approach to the
-    “alternatives” section.
-
-    1.  If the proposal needs more discussion, repeat this step.
-
-    2.  If the proposal is ready for public discussion, proceed to the
-        next step.
+    Assume that everyone will at least skim the tidyup beforehand, but
+    prepare to review the proposal with a focus on any controversial
+    components. Soon after the meeting, review the meeting notes and
+    update the tidyup with needed changes and clarifications. If major
+    changes have been made, add the previous approach to the
+    “alternatives” section. If the proposal needs more discussion,
+    repeat this step.
 
     (Depending on the complexity of implementation, the next two steps
     can be completed in either order)
 
-4.  **Community feedback**. Create a blog post from the body of the
+4.  **Implement**. Create a reference implementation in one or more PRs
+    to the appropriate repos. Update the tidyup with a link to the PRs
+    in the implementation section.
+
+5.  **Community feedback**. Create a blog post from the body of the
     tidyup. Advertise when the review period ends and the best way to
     provide feedback. Once the review period ends, update the tidyup
     with clarifications and changes. Again, if major changes are made
     include the previous iterations in the “alternatives” section.
 
-5.  **Implement**. Create a reference implementation in one or more PRs
-    to the appropriate repos. Update the tidy with a link to all PRs.
-
 6.  **Final review**. Once both previous steps are completed, book
-    another tidyverse meeting for final sign off. Before meeting, ensure
+    another tidyverse meeting for final sign off.
 
 7.  **Complete.** Merge implementation PRs into affected repos then
     change tidyup status to “implemented”.
@@ -94,8 +95,11 @@ take in a new tidyup at a glance.
     -   **Champion**: each tidyup must be championed by a member of the
         tidyverse team.
 
+    -   **Co-champion**: every tidyup needs a co-champion who will be
+        responsible for reviewing PRs.
+
     -   **Status:** draft, design approved (internal), design approved
-        (external), implemented, or declined.
+        (external), implemented, declined.
 
 -   **Abstract**. Short description of issue and proposed solution.
     Should allow the reader to determine if this is of interest to them
@@ -118,8 +122,8 @@ take in a new tidyup at a glance.
     were considered? If discussion generates major changes, describe
     previous approaches here.
 
--   **Reference implementation**. Once available, provide a link to any
-    PR (or PRs) that implement the proposal.
+-   **Implementation**. Once available, provide a link to any PRs needed
+    to implement the proposal.
 
 -   **Backwards compatibility**. What implications does this change have
     for backward compatibility? How can any negative affects be
@@ -131,28 +135,40 @@ take in a new tidyup at a glance.
 ### Scope
 
 Generally, tidyups are most appropriate for big changes in interface or
-implementation that might affect multiple packages. Some past cases that
-would have benefited include from a tidyup are:
+implementation that are likely to affect multiple packages. Some past
+cases that would have benefited from a tidyup are:
 
 -   Making the pipe lazy.
--   vctrs related changes to dplyr.
--   Add case weights across tidymodels packages.
+-   Overhauling dplyr to use strict vctrs policies.
+-   Adding case weights across tidymodels packages.
 
 In general, a tidyup is not needed if the change only affects a single
 package. There are a few exceptions:
 
 -   If developing a new package that provides similar functionality to
     an existing package (e.g. clock, cpp11), it’s useful to have a crisp
-    explanation of why we are building something new not extending an
-    existing tool.
+    explanation of why we are building something new and not extending
+    an existing tool.
 
--   If the initial application is to a single package, but it might
-    expand to more packages in the future, it’s worthwhile to do some
-    more upfront design. Two recent examples are testthat 3e (since the
-    edition idea might be used elsewhere) and `dplyr::across()` (since
-    interface affects the design of functions elsewhere).
+-   If the initial application is limited to a single package but it is
+    likely to expand in the future, it’s worthwhile to do more upfront
+    planning. Two recent examples were this would’ve applied are
+    testthat 3e (since the edition idea might be used elsewhere) and
+    `dplyr::across()` (since interface affects the design of functions
+    elsewhere).
 
-Some topics need to be written up so we understand them and can be
-consistent, but don’t need to go through the full tidyup process. These
-include topics like name repair, tidyverse recycling rules, ellipsis
-handling (including tidy dots), and our R version policy.
+Some topics need to be written up so we can apply them consistently
+across packages, but don’t need to go through the full tidyup process.
+These include topics like name repair, tidyverse recycling rules,
+ellipsis handling (including tidy dots), and our R version compatibility
+policy.
+
+## Open issues
+
+-   How do we publish tidyups? Should we just make this repo public? Do
+    we also need a quarto book site?
+
+-   How can we efficiently collect feedback from the community?
+
+-   Is tidyup too cutesy a name? We could call them TEP (tidyverse
+    enhancement proposal) instead?
