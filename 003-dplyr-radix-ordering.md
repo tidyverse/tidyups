@@ -179,9 +179,9 @@ the following properties:
     stringi or explicitly specifying `.locale = "C"`.
 
 -   Alternatively, to globally override the above default behavior, the
-    global option, `tidyverse.locale_collation`, can be set to either
-    `"C"` or a string locale identifier. Setting this to anything except
-    `"C"` would require stringi.
+    global option, `dplyr.locale`, can be set to either `"C"` or a
+    string locale identifier. Setting this to anything except `"C"`
+    would require stringi.
 
 American English has been chosen as the default solely because we
 believe it is the most used locale among R users, so it is the least
@@ -231,8 +231,8 @@ sort ø as a unique character after z. Danish users that have
 `LC_COLLATE` set to Danish may be surprised that `arrange()` would now
 be placing ø in the “wrong order” even though they have set that global
 option. The fix would be to either set `.locale = "da"` in their calls
-to `arrange()`, or to set `options(tidyverse.locale_collation = "da")`
-to override this default globally.
+to `arrange()`, or to set `options(dplyr.locale = "da")` to override
+this default globally.
 
 ``` r
 library(dplyr) # tidyverse/dplyr#5942
