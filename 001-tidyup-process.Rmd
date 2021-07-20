@@ -42,13 +42,12 @@ The following sections describe the basic process, the sections that most tidyup
 
 2.  **Write up**.
     Create an `.Rmd` (using sections defined below) and submit PR to <http://github.com/tidyverse/tidyups>.
-    Once you're happy with the write up, and one other person has reviewed it, proceed to the next step.
+    Once you're happy with the write up, and your co-champion has has reviewed it, proceed to the next step.
 
 3.  **Discuss**.
     Book a discussion in the tidyverse weekly meeting.
-    Assume that everyone will at least skim the tidyup beforehand, but prepare to review the proposal with a focus on any controversial components.
+    Assume that everyone will at least skim the tidyup beforehand, but prepare to review the proposal with a focus on any parts that need extra discussion.
     Soon after the meeting, review the meeting notes and update the tidyup with needed changes and clarifications.
-    If major changes have been made, add the previous approach to the "alternatives" section.
     If the proposal needs more discussion, repeat this step.
 
     (Depending on the complexity of implementation, the next two steps can be completed in either order)
@@ -58,10 +57,9 @@ The following sections describe the basic process, the sections that most tidyup
     Update the tidyup with a link to the PRs in the implementation section.
 
 5.  **Community feedback**.
-    Create a blog post from the body of the tidyup.
-    Advertise when the review period ends and the best way to provide feedback.
-    Once the review period ends, update the tidyup with clarifications and changes.
-    Again, if major changes are made include the previous iterations in the "alternatives" section.
+    Ensure that you've rendered the `.Rmd` so it's easy for others to read.
+    Create a new issue that invites feedback, tag community members who's feedback might be particularly helpful, set a date when the review period will end.
+    Once the review period ends, update the tidyup then close the issue.
 
 6.  **Final review**.
     Once both previous steps are completed, book another tidyverse meeting for final sign off.
@@ -92,16 +90,15 @@ They're not compulsory, but where possible it's best to stick to the standard so
     What are we doing now and why does it need to change?
     This can be long of short depending on the "obviousness" of the problem, how much work is needed to fix it, and whether or not the solution will require breaking changes.
 
--   **Solution.** A description of the proposed solution, or solutions if there are multiple to consider.
+-   **Solution(s)**.
+    A description of the proposed solution or solutions.
     There should be enough detail to guide an implementation.
     Break this up into subsections in whatever way makes sense for the proposal.
 
--   **Open issues**: While proposal is in process, record open issues that require further discussion.
+    If there are multiple potential solutions to consider, each solution should get its own subsection that discusses the pros and cons.
+    After a solution has been picked, add a conclusion that briefly justifies why it was picked.
 
--   **Alternatives**.
-    Why was this solution picked?
-    What other solutions were considered?
-    If discussion generates major changes, describe previous approaches here.
+-   **Open issues**: While proposal is in process, record open issues that require further discussion.
 
 -   **Implementation**.
     Once available, provide a link to any PRs needed to implement the proposal.
@@ -131,14 +128,3 @@ There are a few exceptions:
 
 Some topics need to be written up so we can apply them consistently across packages, but don't need to go through the full tidyup process.
 These include topics like name repair, tidyverse recycling rules, ellipsis handling (including tidy dots), and our R version compatibility policy.
-
-## Open issues
-
--   How do we publish tidyups?
-    Should we just make this repo public?
-    Do we also need a quarto book site?
-
--   How can we efficiently collect feedback from the community?
-
--   Is tidyup too cutesy a name?
-    We could call them TEP (tidyverse enhancement proposal) instead?
