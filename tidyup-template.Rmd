@@ -1,0 +1,45 @@
+---
+output: github_document
+---
+
+# Tidyup #NUMBER: TITLE (Tidyup number and short, but descriptive, name)
+
+
+**Champion**: Name (each tidyup must be championed by a member of the tidyverse team)
+
+**Co-champion**: Name (every tidyup needs a co-champion who will be responsible for reviewing PRs)
+
+**Status**: Draft, Design approved (internal), Design approved (external), Implemented, or Declined
+
+## Abstract
+Short description of issue and proposed solution.  
+Should allow the reader to determine if this is of interest to them and whether or not to keep reading.
+
+## Motivation
+What are we doing now and why does it need to change?  
+This can be long of short depending on the "obviousness" of the problem, how much work is needed to fix it, and whether or not the solution will require breaking changes.
+
+## Solution
+A description of the proposed solution, or solutions if there are multiple to consider.  
+There should be enough detail to guide an implementation.  
+Break this up into subsections in whatever way makes sense for the proposal.
+
+## Open issues
+While proposal is in process, record open issues that require further discussion.
+
+## Alternatives
+Why was this solution picked?  
+What other solutions were considered?  
+If discussion generates major changes, describe previous approaches here.
+
+## Implementation
+Once available, provide a link to any PRs needed to implement the proposal.
+
+## Backwards compatibility
+What implications does this change have for backward compatibility?  
+How can any negative affects be ameliorated?
+
+## How to teach
+If the change is likely to affect user code, include a section briefly discussing how and when to teach.
+
+
