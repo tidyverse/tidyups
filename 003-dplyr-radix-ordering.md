@@ -192,6 +192,13 @@ change that default for their scripts. Feedback has indicated that while
 a global option can decrease reproducibility between sessions, in this
 case the benefits of it outweigh the costs.
 
+The global option `dplyr.locale` should be used sparingly, as it has the
+potential to reduce reproducibility across R sessions and affect
+indirect calls to `arrange()`. It should be viewed as a *convenience
+option*, which can be helpful for quickly adapting an existing script to
+the new behavior of `arrange()`, but ideally should not be used in
+production code.
+
 On certain systems, stringi can be a difficult dependency to install.
 Because of this, this proposal recommends that stringi only be
 *suggested* so that users without stringi can still use dplyr.
