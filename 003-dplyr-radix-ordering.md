@@ -179,9 +179,9 @@ the following properties:
     stringi or explicitly specifying `.locale = "C"`.
 
 -   Alternatively, to globally override the above default behavior, the
-    global option, `tidyverse.locale_collation`, can be set to either
-    `"C"` or a string locale identifier. Setting this to anything except
-    `"C"` would require stringi.
+    global option, `dplyr.locale`, can be set to either `"C"` or a
+    string locale identifier. Setting this to anything except `"C"`
+    would require stringi.
 
 American English has been chosen as the default solely because we
 believe it is the most used locale among R users, so it is the least
@@ -191,6 +191,13 @@ time* they call `arrange()`, so the global option provides a way to
 change that default for their scripts. Feedback has indicated that while
 a global option can decrease reproducibility between sessions, in this
 case the benefits of it outweigh the costs.
+
+The global option `dplyr.locale` should be used sparingly, as it has the
+potential to reduce reproducibility across R sessions and affect
+indirect calls to `arrange()`. It should be viewed as a *convenience
+option*, which can be helpful for quickly adapting an existing script to
+the new behavior of `arrange()`, but ideally should not be used in
+production code.
 
 On certain systems, stringi can be a difficult dependency to install.
 Because of this, this proposal recommends that stringi only be
@@ -231,8 +238,8 @@ sort ø as a unique character after z. Danish users that have
 `LC_COLLATE` set to Danish may be surprised that `arrange()` would now
 be placing ø in the “wrong order” even though they have set that global
 option. The fix would be to either set `.locale = "da"` in their calls
-to `arrange()`, or to set `options(tidyverse.locale_collation = "da")`
-to override this default globally.
+to `arrange()`, or to set `options(dplyr.locale = "da")` to override
+this default globally.
 
 ``` r
 library(dplyr) # tidyverse/dplyr#5942
