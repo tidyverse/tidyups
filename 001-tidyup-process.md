@@ -2,21 +2,20 @@
 # Tidyup 1: what is a tidyup?
 
 **Champion**: Hadley Wickham  
-**Co-champion**: ???  
-**Status**: Draft
+**Co-champion**: ??? **Status**: Draft
 
 ## Abstract
 
 For bigger architectural changes, particularly those that span multiple
 packages or are likely to affect larger number of users, we need a
 process to clearly document the problem, describe possible solutions,
-record our decisions, and to get feedback from the community. This
-document describes a lightweight process for proposing changes and
-getting feedback on them that I call a **tidyup**.
+record our decisions, and collect feedback from the community. This
+document proposes the **tidyup** as a lightweight way of navigating that
+process.
 
-For now, tidyups can only be proposed by members of the tidyverse team,
-but we will plan to open up the process to any member of the R community
-once we have a decent amount of experience with it.
+For now, tidyups can only be proposed by the tidyverse team, but we plan
+to open up the process to the wider community once we have more
+experience with it.
 
 ## Motivation
 
@@ -25,14 +24,13 @@ informal. This has made it easy for us to rapidly make changes but comes
 with some substantial downsides:
 
 -   There’s no standard way to invite feedback from the community. This
-    means that we miss out on useful feedback from the community and
-    makes it harder for folks outside the tidyverse team to feel like
-    they can influence development.
+    means that we get useful feedback too late or not at all, and is a
+    lost opportunity to build deeper engagement with the community.
 
--   It’s easy to lose track of alternatives proposed and discarded early
-    in the process. This can lead to substantial repeated work if we
-    later discover a constraint that requires us to rethink the proposed
-    solution.
+-   It’s easy to lose track of solutions proposed and discarded early in
+    the process. This can lead to substantial repeated work if we later
+    discover a constraint that requires us to rethink the proposed
+    approach.
 
 -   By keeping design decisions internal, interested external developers
     can’t see “how the sausage is made” and learn from our experiences.
@@ -41,7 +39,9 @@ with some substantial downsides:
 
 To solve this problem, I propose a lightweight framework called a
 tidyup. Tidyups follow a standard process that ultimately leads to an
-.Rmd in<https://github.com/tidyverse/tidyups>.
+.Rmd in <https://github.com/tidyverse/tidyups>. The following sections
+describe the basic process, the sections that most tidyups should
+contain, and a few notes about the scope of tidyups.
 
 ### Process
 
@@ -51,17 +51,15 @@ tidyup. Tidyups follow a standard process that ultimately leads to an
 
 2.  **Write up**. Create an `.Rmd` (using sections defined below) and
     submit PR to <http://github.com/tidyverse/tidyups>. Once you’re
-    happy with the write up, and one other person has reviewed it,
+    happy with the write up, and your co-champion has has reviewed it,
     proceed to the next step.
 
 3.  **Discuss**. Book a discussion in the tidyverse weekly meeting.
     Assume that everyone will at least skim the tidyup beforehand, but
-    prepare to review the proposal with a focus on any controversial
-    components. Soon after the meeting, review the meeting notes and
-    update the tidyup with needed changes and clarifications. If major
-    changes have been made, add the previous approach to the
-    “alternatives” section. If the proposal needs more discussion,
-    repeat this step.
+    prepare to review the proposal with a focus on any parts that need
+    extra discussion. Soon after the meeting, review the meeting notes
+    and update the tidyup with needed changes and clarifications. If the
+    proposal needs more discussion, repeat this step.
 
     (Depending on the complexity of implementation, the next two steps
     can be completed in either order)
@@ -70,11 +68,11 @@ tidyup. Tidyups follow a standard process that ultimately leads to an
     to the appropriate repos. Update the tidyup with a link to the PRs
     in the implementation section.
 
-5.  **Community feedback**. Create a blog post from the body of the
-    tidyup. Advertise when the review period ends and the best way to
-    provide feedback. Once the review period ends, update the tidyup
-    with clarifications and changes. Again, if major changes are made
-    include the previous iterations in the “alternatives” section.
+5.  **Community feedback**. Ensure that you’ve rendered the `.Rmd` so
+    it’s easy for others to read. Create a new issue that invites
+    feedback, tag community members who’s feedback might be particularly
+    helpful, set a date when the review period will end. Once the review
+    period ends, update the tidyup then close the issue.
 
 6.  **Final review**. Once both previous steps are completed, book
     another tidyverse meeting for final sign off.
@@ -88,7 +86,7 @@ Each tidyup should have the following sections. They’re not compulsory,
 but where possible it’s best to stick to the standard so it’s easier to
 take in a new tidyup at a glance.
 
--   **Title**. Includes tidyup number and short, but evocative name.
+-   **Title**. Includes tidyup number and short, but evocative, name.
 
 -   **Metadata**
 
@@ -110,17 +108,18 @@ take in a new tidyup at a glance.
     the problem, how much work is needed to fix it, and whether or not
     the solution will require breaking changes.
 
--   **Solution.** A description of the proposed solution, or solutions
-    if there are multiple to consider. There should be enough detail to
-    guide an implementation. Break this up into subsections in whatever
-    way makes sense for the proposal.
+-   **Solution(s)**. A description of the proposed solution or
+    solutions. There should be enough detail to guide an implementation.
+    Break this up into subsections in whatever way makes sense for the
+    proposal.
+
+    If there are multiple potential solutions to consider, each solution
+    should get its own subsection that discusses the pros and cons.
+    After a solution has been picked, add a conclusion that briefly
+    justifies why it was picked.
 
 -   **Open issues**: While proposal is in process, record open issues
     that require further discussion.
-
--   **Alternatives**. Why was this solution picked? What other solutions
-    were considered? If discussion generates major changes, describe
-    previous approaches here.
 
 -   **Implementation**. Once available, provide a link to any PRs needed
     to implement the proposal.
@@ -162,13 +161,3 @@ across packages, but don’t need to go through the full tidyup process.
 These include topics like name repair, tidyverse recycling rules,
 ellipsis handling (including tidy dots), and our R version compatibility
 policy.
-
-## Open issues
-
--   How do we publish tidyups? Should we just make this repo public? Do
-    we also need a quarto book site?
-
--   How can we efficiently collect feedback from the community?
-
--   Is tidyup too cutesy a name? We could call them TEP (tidyverse
-    enhancement proposal) instead?
