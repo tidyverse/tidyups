@@ -4,7 +4,7 @@ output: github_document
 
 # Tidyup 5: standard processes
 
-**Champion**: Hadley Wickham\
+**Champion**: Hadley Wickham
 **Status**: Proposal
 
 ## Abstract
@@ -29,9 +29,8 @@ In brief we use the following terms:
 -   **Authors** are listed in `Authors@R`.
 
 -   The (one) **maintainer** is listed listed in `Authors@R` with role "cre", e.g. `person(given = "Hadley", family = "Wickham", role = c("aut", "cre"), email = "hadley@rstudio.com")`.
-    The creator role is not a good fit for maintainer, but it is what CRAN requires.
 
-Additionally, for packages written primarily by RStudio employees, we list RStudio as copyright holder and funder: `person(given = "RStudio", role = c("cph", "fnd"))`.
+-   Additionally, for packages written primarily by RStudio employees, we list RStudio as copyright holder and funder: `person(given = "RStudio", role = c("cph", "fnd"))`.
 
 ### Code contribution
 
@@ -45,8 +44,7 @@ Even in this situation it's a good idea to still make a PR, let it rest overnigh
 
 PRs are usually squashed-merged so that individual contributors don't need to worry about maintaining a clean history.
 Rewrite commit message if that happens: <https://style.tidyverse.org/gitgithub.html#commit-messages>.
-
-Use tidyverse style.
+If a PR is larger and the author has carefully created a clean history, you can
 
 ### Licensing
 
@@ -74,7 +72,9 @@ Significant backward incompatible changes need to be accompanied with a plan for
 Package releases are made on an as-needed basis, and increment either the major, minor, or patch version depending on the scope of the release.
 The process itself is defined by `usethis::use_release_issue()`.
 
-Follow check list created by `usethis::use_release_issue()`.
+### Style
+
+Follow the advice in <http://style.tidyverse.org/>
 
 ### Documentation
 
