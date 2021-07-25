@@ -206,3 +206,5 @@ function.)
 -   How can we communicate with authors? Do we add them to a team? Do we
     add them as members of the repo? Do we add them to a slack channel?
 -   Are there other common tasks?
+-   What steps do we need to take to align existing repos with the new
+    policy?
