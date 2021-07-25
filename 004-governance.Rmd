@@ -27,7 +27,7 @@ The following sections describes a governance model to use as a default for open
 It is not mandatory, but it has been designed to reflect our current best practices, and should be used unless there are compelling reasons to favour a different approach.
 
 The model strikes a balance between the [benevolent dictator](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel) and [rough consensus](https://datatracker.ietf.org/doc/html/rfc7282) governance models.
-We blend these two governance models because we want to involve the community in decision making as much as possible, while recognising that excellent user experience requires consistent design guided by a single voice.
+We blend these two governance models because we want to involve the community in decision making as much as possible, while recognising that excellent user experience often requires consistent design guided by a single voice.
 
 ### Users
 

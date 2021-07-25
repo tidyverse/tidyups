@@ -39,8 +39,8 @@ dictator](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel)
 and [rough consensus](https://datatracker.ietf.org/doc/html/rfc7282)
 governance models. We blend these two governance models because we want
 to involve the community in decision making as much as possible, while
-recognising that excellent user experience requires consistent design
-guided by a single voice.
+recognising that excellent user experience often requires consistent
+design guided by a single voice.
 
 ### Users
 
