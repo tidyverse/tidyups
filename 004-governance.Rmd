@@ -47,9 +47,9 @@ Contributors:
 
 -   Report bugs and suggest improvements by creating new issues.
 
--   Improving existing issues by answering questions, creating reprexes, or providing feedback on proposed changes.
+-   Improve existing issues by answering questions, creating reprexes, or providing feedback on proposed changes.
 
--   Contributing code or documentation via pull requests.
+-   Contribute code or documentation via pull requests.
 
 Anyone can become a contributor: there is no expectation of commitment to the project, no required set of skills, and no selection process.
 The only requirement is to follow the code of conduct.
@@ -127,12 +127,12 @@ The maintainer then sends the following email:
 >
 > In recognition of your significant contributions to {package}, would you be interested in becoming a co-author of the package?
 > This means that you'll be acknowledged in `Authors@R` and given write permission on GitHub.
-> Write permission gives you the power to change {package} directly (which is fine for smaller fixes) but I'd appreciate it if you'd continue to send major stuff through the pull request process.
+> Write permission gives you the power to change {package} directly (which is fine for smaller fixes), but I'd appreciate it if you'd continue to submit major changes through the pull request process.
 >
 > If you accept, can you please prepare a PR that:
 >
 > -   Adds your info to `Authors@R`
-> -   Tweaks `_pkgdown.yml` if you want to link somewhere from the pkgdown site
+> -   Tweaks `_pkgdown.yml` if you want your name to link to somewhere from the pkgdown site
 > -   Advertises the change in NEWS.md
 > -   Re-builds the documentation to get updated package docs
 >
