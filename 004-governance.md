@@ -28,10 +28,11 @@ clear path from package user to package developer.
 ## Solution
 
 The following sections describes a governance model to use as a default
-for open source RStudio repositories (starting with those in the r-lib,
-tidyverse, and tidymodels organisations). It is not mandatory, but it
-has been designed to reflect our current best practices, and should be
-used unless there are compelling reasons to favour a different approach.
+for open source RStudio repositories (starting with those in the
+tidyverse organisation and expanding to r-lib and tidymodels in the near
+future). It is not mandatory, but it has been designed to reflect our
+current best practices, and should be used unless there are compelling
+reasons to favour a different approach.
 
 The model strikes a balance between the [benevolent
 dictator](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel)
@@ -40,6 +41,9 @@ governance models. We blend these two governance models because we want
 to involve the community in decision making as much as possible, while
 recognising that excellent user experience often requires consistent
 design guided by a single voice.
+
+The following sections define the four key roles (users, contributors,
+authors, and maintainers) and a couple of common processes.
 
 ### Roles
 
@@ -54,6 +58,10 @@ not limited to):
 -   Evangelising about the project.
 -   Asking and answering questions on community forums.
 -   Providing moral support (a “thank you” goes a long way).
+
+There is no formal relationship between the project and the users, but
+we include them here as they’re the largest group and are the pool from
+which contributors are typically drawn.
 
 #### Contributors
 
@@ -74,21 +82,24 @@ to the project, no required set of skills, and no selection process. The
 only requirement is to follow the code of conduct.
 
 Packages don’t maintain an explicit list of contributors but acknowledge
-them in blog posts using data from GitHub aggregated by
-`usethis::use_tidy_thanks()`.
+them in blog posts, using data from GitHub aggregated by
+`usethis::use_tidy_thanks()`. Contributors who implement user facing
+changes are also acknowledged in `NEWS.md`.
 
 #### Authors
 
 Contributors who have made significant and sustained contributions can
 be invited to become authors. Authors are collectively responsible for
-day-to-day development of the package, including responding to issues
-and reviewing pull requests. An author possesses two special powers:
+the development of the package, including responding to issues, writing
+code, and reviewing pull requests.
 
--   They have **write** access on GitHub so they can triage issues,
-    request review on PRs, and merge them.
+An author possesses two special powers:
 
--   They are listed in `Authors@R` so they receive credit when others
-    cite the package.
+-   They have **write** access on GitHub so they can label issues, close
+    issues, request PR reviews, and merge PRs.
+
+-   They are listed in `Authors@R` so they are listed on the package
+    website and included in the package citation.
 
 Authors are expected to follow our standard processes, such as:
 
@@ -126,17 +137,15 @@ Authors are expected to follow our standard processes, such as:
 
 Authors are recruited from contributors. An invitation to join the
 authors can be extended to anyone who has made significant and sustained
-contributions, and has acted in accordance with the code of conduct. Any
-existing author can propose a contributor be invited by emailing the
-maintainer.
+contributions, and has acted in accordance with the code of conduct.
 
 #### Maintainer
 
-A maintainer is the author with primary responsibility for the project.
+A maintainer is the author with primary responsibility for the package.
 As well as the responsibilities of an author, they also:
 
 -   Set and clearly communicates the strategic objectives of the
-    project.
+    package.
 -   Oversee CRAN releases.
 -   On-board new authors.
 -   Have the final say on important decisions.
@@ -149,9 +158,9 @@ A maintainer has two special powers:
 -   They have **admin** access on Github, allowing them to add new
     authors when needed.
 
--   They are listed in `Authors@R`, along with their email address and
-    the “cre” (creator) role (a maintainer often isn’t the creator, but
-    CRAN mandates the use of this role).
+-   In their `Authors@R` listing they have an email address and the
+    “cre” role. “cre” is short for creator and while a maintainer often
+    isn’t the creator, CRAN mandates the use of this role.
 
 The maintainers of most of RStudio’s open source repositories are
 RStudio employees. This is not a requirement but a recognition of the
@@ -170,8 +179,10 @@ financial supporting maintainers apart from full-time employment.
 
 To on-board a new author, the maintainer looks for rough consensus
 amongst authors by emailing them (since this needs to be done in
-private). (one signal of rough consensus would be no objections within 7
-days). The maintainer then sends the following email:
+privately). In this case, one signal of rough consensus would be no
+objections within 7 days.
+
+The maintainer then sends the following email to the proposed author:
 
 > Hi {name},
 >
@@ -237,9 +248,7 @@ happen:
 -   Do we need a brief write up of the tidyverse teams?
 
 -   What steps do we need to take to align existing repos with the new
-    policy?
-
-    -   Does this replace the ggplot2 governance model?
+    policy? Does this replace the ggplot2 governance model?
 
 -   How do we share with the community, new authors etc?
 
