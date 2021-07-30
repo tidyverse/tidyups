@@ -3,7 +3,7 @@
 
 **Champion**: Hadley Wickham  
 **Co-champion**: Tracy Teal  
-**Status**: Proposa l
+**Status**: Proposal
 
 ## Abstract
 
@@ -250,5 +250,5 @@ happen:
 
 -   We are not currently considering a more open model where as soon as
     you get your first PR merged you’re given write access
-    (e.g. <https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team>).
+    (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team).
     Should we be?

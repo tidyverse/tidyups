@@ -6,8 +6,7 @@ output: github_document
 
 **Champion**: Hadley Wickham  
 **Co-champion**: Tracy Teal  
-**Status**: Proposa
-l
+**Status**: Proposal
 
 ## Abstract
 
@@ -188,5 +187,4 @@ We do not yet have a process for selecting a new maintainer when the existing ma
 -   Use of team discussions is a new communication mechanisms.
     Is this going to cause problems?
 
--   We are not currently considering a more open model where as soon as you get your first PR merged you're given write access (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team).
-    Should we be?
+-   We are not currently considering a more open model where as soon as you get your first PR merged you're given write access (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team). Should we be?
