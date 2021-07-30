@@ -7,24 +7,23 @@
 
 ## Abstract
 
-Our open source packages currently don’t have a well defined governance
-model. We do have a basic set of assumptions under which we operate, but
-we have not previously made them precise. This tidyup lays out a model
-that strikes a balance between the benevolent dictator and rough
-consensus models, and defines the relationships between four key roles:
-a large community of package **users,** a smaller pool of GitHub
-**contributors**, a team of **authors**, and a single **maintainer**.
+Our open source packages currently lack a well defined governance model.
+We do have a basic set of assumptions under which we operate, but we
+have not previously made them precise. This tidyup lays out a model that
+strikes a balance between the benevolent dictator and rough consensus
+models, and defines the relationships between four key roles: a large
+community of **users,** a smaller pool of GitHub **contributors**, a
+team of **authors**, and one **maintainer**.
 
 ## Motivation
 
-We currently have one package (ggplot2) with a [formal governance
+One package (ggplot2) currently has a [formal governance
 model](https://github.com/tidyverse/ggplot2/blob/master/GOVERNANCE.md),
-and an informal, undocumented model that we’ve used for other packages
-(e.g. dtplyr, dbplyr). The goal of this tidyup is to come up with
-holistic, flexible model, that can become our default governance model
-going forward. This is part of a general movement to get better at
-defining and documenting our processes to so that there’s a clear path
-from package user to package developer.
+while all others use an informal, undocumented model. The goal of this
+tidyup is to come up with a flexible model that can become our default
+governance model going forward. This is part of a general movement to
+get better at defining and documenting our processes so that there’s a
+clear path from package user to package developer.
 
 ## Solution
 
@@ -42,7 +41,9 @@ to involve the community in decision making as much as possible, while
 recognising that excellent user experience often requires consistent
 design guided by a single voice.
 
-### Users
+### Roles
+
+#### Users
 
 People who use the package are the most important members of the
 community; without these users, this project would have no purpose.
@@ -54,7 +55,7 @@ not limited to):
 -   Asking and answering questions on community forums.
 -   Providing moral support (a “thank you” goes a long way).
 
-### Contributors
+#### Contributors
 
 Users who continue to engage with the project and its community will
 often find themselves becoming more and more involved. Such users may
@@ -63,10 +64,10 @@ GitHub. Contributors:
 
 -   Report bugs and suggest improvements by creating new issues.
 
--   Improving existing issues by answering questions, creating reprexes,
+-   Improve existing issues by answering questions, creating reprexes,
     or providing feedback on proposed changes.
 
--   Contributing code or documentation via pull requests.
+-   Contribute code or documentation via pull requests.
 
 Anyone can become a contributor: there is no expectation of commitment
 to the project, no required set of skills, and no selection process. The
@@ -76,7 +77,7 @@ Packages don’t maintain an explicit list of contributors but acknowledge
 them in blog posts using data from GitHub aggregated by
 `usethis::use_tidy_thanks()`.
 
-### Authors
+#### Authors
 
 Contributors who have made significant and sustained contributions can
 be invited to become authors. Authors are collectively responsible for
@@ -92,9 +93,7 @@ and reviewing pull requests. An author possesses two special powers:
 Authors are expected to follow our standard processes, such as:
 
 -   **Code contribution**: code is usually contributed via PR, even for
-    authors who could push directly. Particularly high-stakes project
-    may want to protect the main branch and require “request reviews
-    before merging”.
+    authors who could push directly.
 
 -   **Communication**: authors are involved in most of the interactions
     with contributors and thus need to set a welcoming and inclusive
@@ -102,7 +101,9 @@ Authors are expected to follow our standard processes, such as:
 
 -   **PR review**: all pull requests should be reviewed by at least one
     other author. In general, there is no expectation that PRs contain
-    clean commit histories, but it’s appreciated where possible.
+    clean commit histories, but it’s appreciated where possible. Once a
+    reviewer has marked a PR as approved, the original author finishes
+    any remaining tasks and then merges it).
 
 -   **Backward compatibility**: any backward incompatible changes
     (i.e. changes that cause reverse dependencies to fail `R CMD check`
@@ -129,7 +130,7 @@ contributions, and has acted in accordance with the code of conduct. Any
 existing author can propose a contributor be invited by emailing the
 maintainer.
 
-### Maintainer
+#### Maintainer
 
 A maintainer is the author with primary responsibility for the project.
 As well as the responsibilities of an author, they also:
@@ -138,9 +139,10 @@ As well as the responsibilities of an author, they also:
     project.
 -   Oversee CRAN releases.
 -   On-board new authors.
--   Mediate conflicts amongst authors.
+-   Have the final say on important decisions.
+-   De-escalate conflict amongst authors and/or users.
 -   Enforce the code of conduct.
--   Recruit their replacement if they want to retire from the project.
+-   Recruit their replacement when they want to retire from the project.
 
 A maintainer has two special powers:
 
@@ -150,9 +152,6 @@ A maintainer has two special powers:
 -   They are listed in `Authors@R`, along with their email address and
     the “cre” (creator) role (a maintainer often isn’t the creator, but
     CRAN mandates the use of this role).
-
-Maintainer turnover is slow and we have not yet developed a process for
-it, but we’d generally expect a maintainer to be a long-standing author.
 
 The maintainers of most of RStudio’s open source repositories are
 RStudio employees. This is not a requirement but a recognition of the
@@ -165,46 +164,91 @@ wants to stop maintaining the package (for whatever reason) they first
 offer it back to RStudio. In the future, we hope to find other ways of
 financial supporting maintainers apart from full-time employment.
 
-### Common tasks
+### Process
 
-#### Author invitation
+#### Invite author
 
 To on-board a new author, the maintainer looks for rough consensus
-amongst authors (which would include no objections within 7 days). The
-maintainer then sends the following email:
+amongst authors by emailing them (since this needs to be done in
+private). (one signal of rough consensus would be no objections within 7
+days). The maintainer then sends the following email:
 
 > Hi {name},
 >
 > In recognition of your significant contributions to {package}, would
-> you be interested in becoming a co-author of the package? This means
-> that you’ll be acknowledged in `Authors@R` and given write permission
-> on GitHub. Write permission gives you the power to change {package}
-> directly (which is fine for smaller fixes) but I’d appreciate it if
-> you’d continue to send major stuff through the pull request process.
+> you be interested in becoming a package author? You can read about the
+> rights and responsibilities of a package author at …, but in short,
+> being an author means that you’ll be acknowledged in `Authors@R` and
+> given write permission on GitHub. You’ll continue to use PRs to
+> contribute code, but merge your own PRs once they’ve been reviewed,
+> and you can now review PRs from others.
 >
-> If you accept, can you please prepare a PR that:
+> If you accept please respond to this email then prepare a PR that:
 >
-> -   Adds your info to `Authors@R`
-> -   Tweaks `_pkgdown.yml` if you want to link somewhere from the
->     pkgdown site
-> -   Advertises the change in NEWS.md
-> -   Re-builds the documentation to get updated package docs
+> -   Adds your info to `Authors@R`.
+> -   Tweaks `_pkgdown.yml` if you want to link your name to your
+>     website on the package website.
+> -   Advertises the change in NEWS.md.
+> -   Re-builds the documentation to get updated package docs.
 >
-> I’ll then add you as admin, and approve the PR, then you can
+> I’ll then give you write access and approve the PR, then you can
 > squash-merge it. This would be our workflow going forward. (You’ll
 > also be able to request reviews from me and other authors as needed).
 >
 > Thanks for all your work on {package}!
 >
-> {your\_name}
+> {your_name}
 
 (After this tidyup is approved, the template will become a usethis
 function.)
 
+Once the author responds:
+
+-   Add them to a member of the tidyverse authors team.
+
+-   Give them write access to the specific package.
+
+-   If this is the first non-RStudio author, strongly consider
+    protecting the main branch and requiring one review. This helps
+    newer authors feel confident there’s no way for them to accidentally
+    mess up the repo.
+
+-   Send a celebration tweet.
+
+#### Change maintainer
+
+We do not yet have a process for selecting a new maintainer when the
+existing maintainer retires, but the following mechanical things need to
+happen:
+
+-   Give new maintainer admin access.
+
+-   Remove admin access from old maintainer.
+
+-   Remove “cre” role and email address from old maintainer, and add
+    role and email address for new maintainer.
+
+-   Submit patch release to CRAN to confirm maintainer change.
+
+-   Add bullet to NEWS.
+
 ## Open issues
 
--   How can we communicate with authors? Do we add them to a team? Do we
-    add them as members of the repo? Do we add them to a slack channel?
--   Are there other common tasks?
+-   Do we need a brief write up of the tidyverse teams?
+
 -   What steps do we need to take to align existing repos with the new
     policy?
+
+    -   Does this replace the ggplot2 governance model?
+
+-   How do we share with the community, new authors etc?
+
+## Lingering concerns
+
+-   Use of team discussions is a new communication mechanisms. Is this
+    going to cause problems?
+
+-   We are not currently considering a more open model where as soon as
+    you get your first PR merged you’re given write access
+    (e.g. <https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team>).
+    Should we be?
