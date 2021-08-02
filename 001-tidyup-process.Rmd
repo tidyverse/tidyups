@@ -5,7 +5,7 @@ output: github_document
 # Tidyup 1: what is a tidyup?
 
 **Champion**: Hadley Wickham  
-**Co-champion**: ???
+**Co-champion**: Tracy Teal  
 **Status**: Draft
 
 ## Abstract
@@ -13,7 +13,7 @@ output: github_document
 For bigger architectural changes, particularly those that span multiple packages or are likely to affect larger number of users, we need a process to clearly document the problem, describe possible solutions, record our decisions, and collect feedback from the community.
 This document proposes the **tidyup** as a lightweight way of navigating that process.
 
-For now, tidyups can only be proposed by the tidyverse team, but we plan to open up the process to the wider community once we have more experience with it.
+For now, tidyups can only be proposed by the tidyverse team at RStudio, but we plan to open up the process to the wider community once we have more experience with it.
 
 ## Motivation
 
@@ -34,6 +34,8 @@ To solve this problem, I propose a lightweight framework called a tidyup.
 Tidyups follow a standard process that ultimately leads to an .Rmd in <https://github.com/tidyverse/tidyups>.
 The following sections describe the basic process, the sections that most tidyups should contain, and a few notes about the scope of tidyups.
 
+The goal is to reach [rough consensus](https://datatracker.ietf.org/doc/html/rfc7282): not everyone needs to agree on every detail, but there should be a general belief that the proposal is a net positive and all major concerns should be documented, even if not resolved.
+
 ### Process
 
 1.  **Propose**.
@@ -49,8 +51,9 @@ The following sections describe the basic process, the sections that most tidyup
     Assume that everyone will at least skim the tidyup beforehand, but prepare to review the proposal with a focus on any parts that need extra discussion.
     Soon after the meeting, review the meeting notes and update the tidyup with needed changes and clarifications.
     If the proposal needs more discussion, repeat this step.
+    If the proposal is ready for wider discussion, merge the PR and continue.
 
-    (Depending on the complexity of implementation, the next two steps can be completed in either order)
+    (Depending on the complexity of implementation, the next two steps can be completed in either order.)
 
 4.  **Implement**.
     Create a reference implementation in one or more PRs to the appropriate repos.
@@ -58,7 +61,7 @@ The following sections describe the basic process, the sections that most tidyup
 
 5.  **Community feedback**.
     Ensure that you've rendered the `.Rmd` so it's easy for others to read.
-    Create a new issue that invites feedback, tag community members who's feedback might be particularly helpful, set a date when the review period will end.
+    Create a new issue that invites feedback, tag community members who might be particularly helpful, and set a date when the review period will end (at least two weeks later).
     Once the review period ends, update the tidyup then close the issue.
 
 6.  **Final review**.
@@ -99,6 +102,8 @@ They're not compulsory, but where possible it's best to stick to the standard so
     After a solution has been picked, add a conclusion that briefly justifies why it was picked.
 
 -   **Open issues**: While proposal is in process, record open issues that require further discussion.
+
+-   **Unresolved questions**: Track unresolved questions and lingering concerns that did not get resolved in the PR, but need to be tracked for future discussion.
 
 -   **Implementation**.
     Once available, provide a link to any PRs needed to implement the proposal.
