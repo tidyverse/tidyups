@@ -1,0 +1,84 @@
+# Tidyup 5: Github simplification
+
+## Abstract
+
+## Motivation
+
+Originally, we divided tidyverse and r-lib because we thought it was important to keep data science and package development tools separate.
+Then when tidymodels kicked off, it seem natural for it to have its own home.
+
+But there are some downsides to having multiple organisations for the tidyverse team:
+
+-   While distinction between tidyverse, r-lib, and tidymodels is at reasonably strong in our heads, it's hard for users to articulate these differences, and to learn/remember exactly which organisation a package belongs to.
+    This is particularly hard when you look holistically across RStudio.
+
+-   There are a few packages that where it's less obvious which org they should belong too:
+
+    -   rvest: is it programming or data science? what about httr?
+    -   usethis: while it's technically programming, it's very user facing, and we expect data scientists might use it for analysis projects.
+    -   glue: useful for data science but designed to be zero dep specifically for use by package developers.
+    -   tibble/magrritr: both technically user-facing, but most people use via other packages
+    -   modelr: we don't really want people to use this package.
+    -   googledrive: not really about data analysis or package development.
+
+    It often takes me multiple attempts to get to the correct URL for these packages.
+
+-   It's painful to move issues across orgs.
+    This affects packages like dplyr where the underlying issue might need to be fixed in vctrs.
+
+-   As we start to use GitHub teams more, managing separate teams across separate orgs will become more painful.
+    It also makes it hard to centralise discussions, and to explain succintly the scope of tidy ups.
+
+## Solutions
+
+There are three possible solutions:
+
+-   Move all r-lib and tidymodels repos to **tidyverse org**.
+-   Create a **new org** and move all r-lib, tidyverse, and tidymodel repos.
+-   Move all r-lib, tidyverse, and tidymodel to the **rstudio org**.
+
+These cases only affect the GitHub; all other websites would stay as is.
+
+### Move to tidyverse org
+
+Pros:
+
+-   Moves smallest number of packages.
+-   Tidyverse has strongest brand identity.
+
+Cons:
+
+-   Makes it more complicated to explain exactly what the tidyverse is. (It's a package; it's a set of packages loaded by `library(tidyverse)`; it's a set of packages installed by `install.packages("tidyverse")`; and it's a GitHub organisation).
+-   No longer a one-to-one relationship between package homepage and GitHub organisation.
+-   Lose ability to bury less-important packages in r-lib; harder to highlight most important packages in tidyverse.
+-   Binds all packages more closely to tidyverse. This might be less appealing for external developers and for other RStudio teams we might hope would also migrate to one org.
+
+### Create new org
+
+Pros:
+
+-   May be easier to persuade other organisations to join if not "tidyverse" branded.
+
+Cons:
+
+-   Will be hard to come up with good name.
+-   In the short term, increases numbers of orgs.
+-   Maximum number of packages need to be moved.
+
+### Move to rstudio org
+
+Pro:
+
+-   Greatest reduction in packages.
+
+-   Easy story to tell (now that RStudio is a PBC, we have 0% concerns about it as long term steward of this code).
+
+Cons:
+
+-   Eliminates veneer of separation between RStudio and tidyverse, and makes it harder to invite non-employee authors and maintainers.
+-   Would fall under RStudio IT practices which are geared towards protecting private data.
+-   Would need very clear reassurance that this isn't RStudio "muscling in" on open source. Regardless of how we communicate this, a few people are likely to generate negative press.
+
+## Open questions
+
+-   Are there any existing workflows that this would break?
