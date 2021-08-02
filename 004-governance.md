@@ -93,13 +93,17 @@ be invited to become authors. Authors are collectively responsible for
 the development of the package, including responding to issues, writing
 code, and reviewing pull requests.
 
-An author possesses two special powers:
+An author possesses three special powers. They:
 
--   They have **write** access on GitHub so they can label issues, close
+-   Have **write** access on GitHub so they can label issues, close
     issues, request PR reviews, and merge PRs.
 
--   They are listed in `Authors@R` so they are listed on the package
-    website and included in the package citation.
+-   Are listed in `Authors@R` so they are listed on the package website
+    and included in the package citation.
+
+-   Are a member of the “authors” team of the tidyverse organisation, so
+    they are publicly acknowledged and can easily be cc’d in
+    tidyverse-wide discussions.
 
 Authors are expected to follow our standard processes, such as:
 
