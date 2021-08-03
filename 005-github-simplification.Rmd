@@ -1,4 +1,12 @@
+---
+output: github_document
+---
+
 # Tidyup 5: Github simplification
+
+Champion: Hadley Wickham\
+Co-champion:\
+Status: draft
 
 ## Abstract
 
@@ -20,6 +28,7 @@ But there are some downsides to having multiple organisations for the tidyverse 
     -   tibble/magrritr: both technically user-facing, but most people use via other packages
     -   modelr: we don't really want people to use this package.
     -   googledrive: not really about data analysis or package development.
+    -   vroom is in r-lib, readr is in tidyverse.
 
     It often takes me multiple attempts to get to the correct URL for these packages.
 
