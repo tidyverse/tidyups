@@ -18,7 +18,7 @@ This tidyup lays out a model that strikes a balance between the benevolent dicta
 
 One package (ggplot2) currently has a [formal governance model](https://github.com/tidyverse/ggplot2/blob/master/GOVERNANCE.md), while all others use an informal, undocumented model.
 The goal of this tidyup is to come up with a flexible model that can become our default governance model going forward.
-This is part of a general movement to get better at defining and documenting our processes so that there's a clear path from package user to package developer and an understanding of how decisions are made.
+This is part of a general movement to get better at defining and documenting our processes so that there's a clear path from package user to package developer and outline how decisions are made.
 
 ## Solution
 
@@ -28,7 +28,7 @@ It is not mandatory, but it has been designed to reflect our current best practi
 The model strikes a balance between the [benevolent dictator](http://oss-watch.ac.uk/resources/benevolentdictatorgovernancemodel) and [rough consensus](https://datatracker.ietf.org/doc/html/rfc7282) governance models.
 We blend these two governance models because we want to involve the community in decision making as much as possible, while recognising that excellent user experience often requires consistent design guided by a single voice.
 
-The following sections define the four key roles (users, contributors, authors, and maintainers) and a few common processes.
+The following sections define the four key roles (users, contributors, authors, and maintainers) and a couple of common processes.
 
 ### Roles
 
@@ -55,7 +55,7 @@ Contributors:
 -   Contribute code or documentation via pull requests.
 
 Anyone can become a contributor: there is no expectation of commitment to the project, no required set of skills, and no selection process.
-The only requirement is to follow the [Code of Conduct](https://github.com/tidyverse/ggplot2/blob/master/CODE_OF_CONDUCT.md) and [contributing guidelines](https://github.com/tidyverse/ggplot2/blob/master/CONTRIBUTING.md).
+The only requirements are to follow the [code of conduct](https://github.com/tidyverse/ggplot2/blob/master/CODE_OF_CONDUCT.md) and [contributing guidelines](https://github.com/tidyverse/ggplot2/blob/master/CONTRIBUTING.md).
 
 Packages don't maintain an explicit list of contributors but acknowledge them in blog posts, using data from GitHub aggregated by `usethis::use_tidy_thanks()`.
 Contributors who implement user facing changes are also acknowledged in `NEWS.md`.
@@ -96,7 +96,7 @@ Authors are expected to follow our standard processes, such as:
 (We expect to flesh these processes out in the coming months.)
 
 Authors are recruited from contributors.
-An invitation to join the authors can be extended to anyone who has made significant and sustained contributions, and has acted in accordance with the Code of Conduct.
+An invitation to join the authors can be extended to anyone who has made significant and sustained contributions, and has acted in accordance with the code of conduct.
 
 #### Maintainer
 
@@ -127,7 +127,7 @@ In the future, we hope to find other ways of financial supporting maintainers ap
 
 #### Invite author
 
-To on-board a new author, the maintainer looks for rough consensus amongst authors by emailing them (since this needs to be done in privately).
+To on-board a new author, the maintainer looks for rough consensus amongst authors by emailing them (since this needs to be done privately).
 In this case, one signal of rough consensus would be no objections within 7 days.
 
 The maintainer then sends the following email to the proposed author:
@@ -135,7 +135,7 @@ The maintainer then sends the following email to the proposed author:
 > Hi {name},
 >
 > In recognition of your significant contributions to {package}, would you be interested in becoming a package author?
-> You can read about the rights and responsibilities of a package author at ..., but in short, being an author means that you'll be acknowledged in `Authors@R`, given write permission on GitHub, and help maintain the welcoming and inclusive tone for the project.
+> You can read about the rights and responsibilities of a package author at ..., but in short, being an author means that you'll be acknowledged in `Authors@R`, given write permission on GitHub and help maintain the welcoming and inclusive tone of the project.
 > You'll continue to use PRs to contribute code, but merge your own PRs once they've been reviewed, and you can now review PRs from others.
 >
 > If you accept please respond to this email then prepare a PR that:
@@ -157,7 +157,7 @@ The maintainer then sends the following email to the proposed author:
 
 Once the author responds:
 
--   Add them to a member of the tidyverse authors team.
+-   Add them as member of the GitHub tidyverse authors team.
 
 -   Give them write access to the specific repository.
 
