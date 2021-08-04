@@ -1,0 +1,92 @@
+---
+output: github_document
+---
+
+# Tidyup 2: tidyr \<-> stringr alignment
+
+**Champion**: Hadley Wickham  
+**Co-champion**: Mine Çetinkaya-Rundel  
+**Status**: Draft
+
+## Abstract
+
+```{r setup}
+library(tidyr)
+library(stringr)
+```
+
+## Motivation
+
+stringr and tidyr provide surprisingly different interfaces for string manipulation.
+This means that they need to be taught almost completely separately, and what you learn from stringr has little ability to improve your use of tidyr.
+
+-   stringr was designed before I understood how important data frames were, so multi-column results use matrices.
+    This makes them hard to immediately use in other tidyverse packages.
+    No stringr function returns a data frame, which is particularly painful given that `summarise()` and `mutate()` can now use data frame results to add multiple columns.
+
+-   To overcome this challenge, tidyr provides some functions that make it easy to split up characters into multiple variables.
+    Unforunately, the tidyr and stringr function names are not well aligned:
+
+    -   `extract()` is similar to `str_match()`
+    -   `separate()` with regex is similar to `str_split_fixed()`
+    -   `separate()` with numeric columns has no equivalent in stringr.
+    -   `separate_rows()` is equivalent to `str_split()`
+
+-   tidyr string functions use base R regular expressions; stringr uses stringi.
+    There are relatively few difference between PCRE and ICU regular expression engines, but you need to use a very different syntax for (e.g.) ignoring case.
+    There's some need to keep tidyr dependencies lightweight (and stringr can be a challenge in some environments), it would be nice to use it if available.
+    (Following in the footsteps of 003-dplyr-radix-ordering).
+
+-   Combining separation by pattern and separation by position in `tidyr::separate()` now seems excessively clever; it's hard to discover how to separate by position.
+
+-   Neither stringr nor tidyr provide a particularly nice way to work with named capture groups.
+    There's also scope for more directly matching column names to patterns if `extract()` didn't attempt to match the syntax of `separate()` so closely, e.g. `str_extract(x, c(type = ".*", "|", fruit = "orange|apple"))`.
+
+<!-- -->
+
+-   tidyr only provides one function for splitting a string across rows, rather than columns: `separate_rows()`. Why does this exist and not `extract_rows()`? Why is there no way to split by string length? Are we missing a general dplyr pattern for this situation?
+
+## Solutions
+
+There are five ways you might want to split up a string:
+
+-   Into a fixed number of pieces by length/position, e.g. `"1m15"` -> `c(trt = "1", gender = "m", age = "15")`
+
+-   Into a varying number of pieces by length, e.g. `"abcdef"` -> `c("ab", "cd", "ef")`
+
+-   Into a fixed number of pieces by a pattern, e.g. `"a/b/c"` -> `c("a", "b", "c")`
+
+-   Into a varying number of pieces by a pattern, e.g. `"a/b/c"` -> `c(treatment = "a", group = "b", subgroup = "c")`
+
+-   Into named groups, e.g. `"a(b)c"` -> `c(treatment = "a", group = "b", subgroup = "c")`
+
+Generally, when the pieces might vary from entry to entry you'll want to create rows; when the pieces are fixed, you'll want to create columns.
+If you have a compound problem like `"a-b-c/d-e-f/g-h-i"` you can solve it by first splitting into rows and then into columns.
+
+| By      |         | stringr         | tidyr             |
+|---------|---------|-----------------|-------------------|
+| Length  | Fixed   |                 | `separate()`      |
+| Length  | Varying |                 |                   |
+| Pattern | Fixed   | `str_split_n()` | `separate()`      |
+| Pattern | Varying | `str_split()`   | `separate_rows()` |
+| Group   | Fixed   | `str_match()`   | `extract()`       |
+
+(Can't cleanly decouple this into stringr + dplyr functions, because there's no way to create multiple rows in dplyr; that appears to be fundamentally a tidyr operation.)
+
+But that can't handle changes to number of rows.
+
+-   `stringr::str_separate_by()` -> `tidyr::separate_by_wider()`, `tidyr::separate_by_longer()`.
+    That doesn't work because the lower-level function needs to be different too
+
+-   `stringr::str_separate_at()` -> `tidyr::separate_at_wider()`, `tidyr::separate_at_longer()`
+
+-   `stringr::str_extract()` -> `tidyr::extract_wider()`, `tidyr::extract_longer()`
+
+How to handle when number of entries doesn't match number of columns.
+
+### Conditional stringr dependency
+
+Use stringr regexps if stringr is installed, or pattern wrapped with `stringr::regexp()` or friends.
+If stringr not installed, message that using base R; provide `perl()` or similar to suppress that message if you deliberately want to use PCRE.
+
+## Implications for teaching
