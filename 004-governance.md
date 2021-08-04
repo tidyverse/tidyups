@@ -12,7 +12,7 @@ We do have a basic set of assumptions under which we operate, but we
 have not previously made them precise. This tidyup lays out a model that
 strikes a balance between the benevolent dictator and rough consensus
 models, and defines the relationships between four key roles: a large
-community of **users,** a smaller pool of GitHub **contributors**, a
+community of **users**, a smaller pool of GitHub **contributors**, a
 team of **authors**, and one **maintainer**.
 
 ## Motivation
@@ -23,11 +23,12 @@ while all others use an informal, undocumented model. The goal of this
 tidyup is to come up with a flexible model that can become our default
 governance model going forward. This is part of a general movement to
 get better at defining and documenting our processes so that there’s a
-clear path from package user to package developer.
+clear path from package user to package developer and outline how
+decisions are made.
 
 ## Solution
 
-The following sections describes a governance model to use as a default
+The following sections describe a governance model to use as a default
 for open source RStudio repositories (starting with those in the
 tidyverse organisation and expanding to r-lib and tidymodels in the near
 future). It is not mandatory, but it has been designed to reflect our
@@ -71,15 +72,16 @@ then go on to become **contributors** by interacting with the project on
 GitHub. Contributors:
 
 -   Report bugs and suggest improvements by creating new issues.
-
 -   Improve existing issues by answering questions, creating reprexes,
     or providing feedback on proposed changes.
-
 -   Contribute code or documentation via pull requests.
 
 Anyone can become a contributor: there is no expectation of commitment
 to the project, no required set of skills, and no selection process. The
-only requirement is to follow the code of conduct.
+only requirements are to follow the [code of
+conduct](https://github.com/tidyverse/ggplot2/blob/master/CODE_OF_CONDUCT.md)
+and [contributing
+guidelines](https://github.com/tidyverse/ggplot2/blob/master/CONTRIBUTING.md).
 
 Packages don’t maintain an explicit list of contributors but acknowledge
 them in blog posts, using data from GitHub aggregated by
@@ -118,7 +120,7 @@ Authors are expected to follow our standard processes, such as:
     other author. In general, there is no expectation that PRs contain
     clean commit histories, but it’s appreciated where possible. Once a
     reviewer has marked a PR as approved, the original author finishes
-    any remaining tasks and then merges it).
+    any remaining tasks and then merges it.
 
 -   **Backward compatibility**: any backward incompatible changes
     (i.e. changes that cause reverse dependencies to fail `R CMD check`
@@ -133,7 +135,7 @@ Authors are expected to follow our standard processes, such as:
     `usethis::use_release_issue()`.
 
 -   **Decision making:** when a package has multiple authors, where
-    possible decisions are made using rough consensus amongst the
+    possible, decisions are made using rough consensus amongst the
     authors. If consensus is hard to reach or taking too long, the
     maintainer will make a decision.
 
@@ -182,7 +184,7 @@ financial supporting maintainers apart from full-time employment.
 #### Invite author
 
 To on-board a new author, the maintainer looks for rough consensus
-amongst authors by emailing them (since this needs to be done in
+amongst authors by emailing them (since this needs to be done
 privately). In this case, one signal of rough consensus would be no
 objections within 7 days.
 
@@ -193,8 +195,9 @@ The maintainer then sends the following email to the proposed author:
 > In recognition of your significant contributions to {package}, would
 > you be interested in becoming a package author? You can read about the
 > rights and responsibilities of a package author at …, but in short,
-> being an author means that you’ll be acknowledged in `Authors@R` and
-> given write permission on GitHub. You’ll continue to use PRs to
+> being an author means that you’ll be acknowledged in `Authors@R`,
+> given write permission on GitHub and help maintain the welcoming and
+> inclusive tone of the project. You’ll continue to use PRs to
 > contribute code, but merge your own PRs once they’ve been reviewed,
 > and you can now review PRs from others.
 >
@@ -219,9 +222,9 @@ function.)
 
 Once the author responds:
 
--   Add them to a member of the tidyverse authors team.
+-   Add them as member of the GitHub tidyverse authors team.
 
--   Give them write access to the specific package.
+-   Give them write access to the specific repository.
 
 -   If this is the first non-RStudio author, strongly consider
     protecting the main branch and requiring one review. This helps
@@ -263,5 +266,5 @@ happen:
 
 -   We are not currently considering a more open model where as soon as
     you get your first PR merged you’re given write access
-    (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team).
+    (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team)).
     Should we be?
