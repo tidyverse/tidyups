@@ -10,6 +10,11 @@ output: github_document
 
 ## Abstract
 
+tidyr provides a handful functions like `separate()` and `extract()` that perform string manipulation.
+Unfortunately, these functions are only weakly connected to their stringr equivalents, making them harder to learn and remember.
+This tidyup proposes a new cohesive family of string manipulation functions to tackle common problems that arise during data tidying.
+The existing functions will remain so existing code is unaffected, but will be superseded to steer folks towards a more consistent API.
+
 ```{r setup}
 library(tidyr)
 library(stringr)
@@ -18,75 +23,111 @@ library(stringr)
 ## Motivation
 
 stringr and tidyr provide surprisingly different interfaces for string manipulation.
-This means that they need to be taught almost completely separately, and what you learn from stringr has little ability to improve your use of tidyr.
+This means that common tasks require integrating two distinct syntaxes and learning more about stringr doesn't improve your use of tidyr.
 
--   stringr was designed before I understood how important data frames were, so multi-column results use matrices.
-    This makes them hard to immediately use in other tidyverse packages.
-    No stringr function returns a data frame, which is particularly painful given that `summarise()` and `mutate()` can now use data frame results to add multiple columns.
+The root cause of the problem is that stringr was designed before I understood the importance of data frames, so many stringr functions return matrices (or lists of matrices), which makes them hard to use with other tidyverse packages.
+No stringr function returns a data frame, which is particularly painful given that `summarise()` and `mutate()` can now use data frame results to add multiple columns.
 
--   To overcome this challenge, tidyr provides some functions that make it easy to split up characters into multiple variables.
-    Unforunately, the tidyr and stringr function names are not well aligned:
+To overcome this weakness, tidyr provides a few functions that work directly with data frames.
+These take a data frame and column specification, and return a modified data frame, typically with new columns specified by the call.
+Unfortunately, the tidyr functions have little relationship to their stringr equivalents:
 
-    -   `extract()` is similar to `str_match()`
-    -   `separate()` with regex is similar to `str_split_fixed()`
-    -   `separate()` with numeric columns has no equivalent in stringr.
-    -   `separate_rows()` is equivalent to `str_split()`
+-   `extract()` is similar to `str_match()`
+-   `separate()` with regex is similar to `str_split_fixed()`
+-   `separate()` with numeric columns has no equivalent in stringr.
+-   `separate_rows()` is equivalent to `str_split()`
 
--   tidyr string functions use base R regular expressions; stringr uses stringi.
-    There are relatively few difference between PCRE and ICU regular expression engines, but you need to use a very different syntax for (e.g.) ignoring case.
-    There's some need to keep tidyr dependencies lightweight (and stringr can be a challenge in some environments), it would be nice to use it if available.
-    (Following in the footsteps of 003-dplyr-radix-ordering).
+Additionally, tidyr uses base R regular expressions, not stringr.
+There are relatively few difference between regexp engines, but you need a very different syntax to control options (e.g. ignoring case).
+While it's important to keep tidyr dependencies lightweight (and installing stringr can be a challenge in some environments), it would be nice to use it if available, following the footsteps laid by [Radix Ordering in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md) [`dplyr::arrange()`](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md).
 
--   Combining separation by pattern and separation by position in `tidyr::separate()` now seems excessively clever; it's hard to discover how to separate by position.
+Additionally there are a few gaps in the current API:
 
 -   Neither stringr nor tidyr provide a particularly nice way to work with named capture groups.
     There's also scope for more directly matching column names to patterns if `extract()` didn't attempt to match the syntax of `separate()` so closely, e.g. `str_extract(x, c(type = ".*", "|", fruit = "orange|apple"))`.
 
-<!-- -->
+-   tidyr only provides one function for splitting a string across rows, rather than columns: `separate_rows()`.
+    What other functions should exist in this family?
 
--   tidyr only provides one function for splitting a string across rows, rather than columns: `separate_rows()`. Why does this exist and not `extract_rows()`? Why is there no way to split by string length? Are we missing a general dplyr pattern for this situation?
+-   `tidyr::separate()` can split up a string by position or by pattern.
+    This now seems too clever, and makes it hard to notice that there are two different tools here.
 
-## Solutions
+### Components
 
-There are five ways you might want to split up a string:
+To find a solution to this problem we need to first enumerate all the parts.
+I think we can break the problem down into two somewhat independent components: how you break the string into pieces, and whether the number of pieces is fixed (and named) or varying (and named).
+In total, I think this gives five ways to split up a string:
 
--   Into a fixed number of pieces by length/position, e.g. `"1m15"` -> `c(trt = "1", gender = "m", age = "15")`
+-   Into a fixed number of pieces by length/position, e.g. `"1m15"` -> `c(trt = "1", gender = "m", age = "15")`.
+    This is closely related to `readr::read_fwf()`.
 
 -   Into a varying number of pieces by length, e.g. `"abcdef"` -> `c("ab", "cd", "ef")`
 
--   Into a fixed number of pieces by a pattern, e.g. `"a/b/c"` -> `c("a", "b", "c")`
+-   Into a fixed number of pieces by a pattern, e.g. `"a/b/c"` -> `c(treatment = "a", group = "b", subgroup = "c").`
 
--   Into a varying number of pieces by a pattern, e.g. `"a/b/c"` -> `c(treatment = "a", group = "b", subgroup = "c")`
+-   Into a varying number of pieces by a pattern, e.g. `"a/b/c"` -> `c("a", "b", "c").`
 
 -   Into named groups, e.g. `"a(b)c"` -> `c(treatment = "a", group = "b", subgroup = "c")`
 
+Matching these operations up with the existing stringr and tidyr function gives the following table:
+
+| Split by | Length  | stringr         | tidyr             |
+|----------|---------|-----------------|-------------------|
+| Length   | Fixed   |                 | `separate()`      |
+| Length   | Varying |                 |                   |
+| Pattern  | Fixed   | `str_split_n()` | `separate()`      |
+| Pattern  | Varying | `str_split()`   | `separate_rows()` |
+| Group    | Fixed   | `str_match()`   | `extract()`       |
+
+Note that `separate()` is repeated twice, and there are a number of empty cells.
+Interestingly, there's no stringr function that allows you to extract multiple pieces by position; you currently have to call `str_sub()` multiple times yourself.
+
 Generally, when the pieces might vary from entry to entry you'll want to create rows; when the pieces are fixed, you'll want to create columns.
-If you have a compound problem like `"a-b-c/d-e-f/g-h-i"` you can solve it by first splitting into rows and then into columns.
+This might not be true in every case, but I think it's true in enough cases that we can assume it as a constraint for this problem.
+(Please let me know if you have a counter-example.)
 
-| By      |         | stringr         | tidyr             |
-|---------|---------|-----------------|-------------------|
-| Length  | Fixed   |                 | `separate()`      |
-| Length  | Varying |                 |                   |
-| Pattern | Fixed   | `str_split_n()` | `separate()`      |
-| Pattern | Varying | `str_split()`   | `separate_rows()` |
-| Group   | Fixed   | `str_match()`   | `extract()`       |
+We don't need to consider compound problems that need to be solved by splitting into rows and columns simultaneously because you a compound problem (e.g. `"a-b-c/d-e-f/g-h-i"`) can always be solved it by first splitting into rows and then into columns.
 
-(Can't cleanly decouple this into stringr + dplyr functions, because there's no way to create multiple rows in dplyr; that appears to be fundamentally a tidyr operation.)
+## Solutions
 
-But that can't handle changes to number of rows.
+There are two possible approaches to solving this problem: providing paired tidyr and stringr functions, or attempting to eliminate the tidyr functions by using dplyr directly.
+I think the first solution is more likely to be successful, but I've included a discussion of the second because I have twice thought it was the "obvious" way forward and needed a more thorough analysis to see the drawbacks.
 
--   `stringr::str_separate_by()` -> `tidyr::separate_by_wider()`, `tidyr::separate_by_longer()`.
-    That doesn't work because the lower-level function needs to be different too
+### Paired tidyr and stringr functions
 
--   `stringr::str_separate_at()` -> `tidyr::separate_at_wider()`, `tidyr::separate_at_longer()`
+| Package | Length  | Input                    | Output                       |
+|---------|---------|--------------------------|------------------------------|
+| tidyr   | fixed   | data frame + column spec | data frame with more rows    |
+| tidyr   | varying | data frame + column spec | data frame with more columns |
+| stringr | fixed   | character vector         | data frame                   |
+| stringr | varying | character vector         | list of character vectors    |
 
--   `stringr::str_extract()` -> `tidyr::extract_wider()`, `tidyr::extract_longer()`
+The vast majority of the work will occur in the stringr functions.
+The tidyr functions would primarily be wrappers that take care of extracting the column and adding the new rows/columns to the input data frame.
+tidyr would require a new helper similar to [`inflate()`](https://github.com/tidyverse/dplyr/pull/5888).
+`tidyr::uncount()` and `tidyr::separate_rows()` would be rewritten to use this new function.
 
-How to handle when number of entries doesn't match number of columns.
+What do we call these functions?
+Naming constraints:
+
+-   The name of each stringr functions should the same name as the tidyr equivalent plus the standard `str_` prefix.
+
+-   Use suffixes to distinguish between fixed and varying.
+    If we assume a strong connection fixed-columns and varying-rows, obvious suffixes would be `wider` and `longer`.
+
+### Eliminate tidyr functions
+
+Can we eliminate the tidyr functions in favour of just stringr + dplyr?
+
+Can't cleanly decouple this into stringr + dplyr functions, because there's no way to create multiple rows in dplyr; that appears to be fundamentally a tidyr operation.
+
+<https://github.com/tidyverse/dplyr/issues/5874>; <https://github.com/tidyverse/dplyr/pull/5888>
 
 ### Conditional stringr dependency
 
 Use stringr regexps if stringr is installed, or pattern wrapped with `stringr::regexp()` or friends.
 If stringr not installed, message that using base R; provide `perl()` or similar to suppress that message if you deliberately want to use PCRE.
+
+### 
 
 ## Implications for teaching
