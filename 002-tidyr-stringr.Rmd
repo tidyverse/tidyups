@@ -34,11 +34,11 @@ Unfortunately, the tidyr functions have little relationship to their stringr equ
 
 -   `extract()` is similar to `str_match()`
 -   `separate()` with regex is similar to `str_split_fixed()`
--   `separate()` with numeric columns has no equivalent in stringr.
+-   `separate()` with numeric columns has no equivalent in stringr
 -   `separate_rows()` is equivalent to `str_split()`
 
 Additionally, tidyr uses base R regular expressions, not stringr.
-There are relatively few difference between regexp engines, but you need a very different syntax to control options (e.g. ignoring case).
+There are relatively few differences between the regexp engines, but you need very different syntax to control options (e.g. ignoring case).
 While it's important to keep tidyr dependencies lightweight (and installing stringr can be a challenge in some environments), it would be nice to use it if available, following the footsteps laid by [Radix Ordering in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md) [`dplyr::arrange()`](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md).
 
 Additionally there are a few gaps in the current API:
@@ -82,11 +82,11 @@ Matching these operations up with the existing stringr and tidyr function gives 
 Note that `separate()` is repeated twice, and there are a number of empty cells.
 Interestingly, there's no stringr function that allows you to extract multiple pieces by position; you currently have to call `str_sub()` multiple times yourself.
 
-Generally, when the pieces might vary from entry to entry you'll want to create rows; when the pieces are fixed, you'll want to create columns.
+Generally, when the numbers of pieces might vary from entry to entry you'll want to create rows; when the numbers of pieces are fixed, you'll want to create columns.
 This might not be true in every case, but I think it's true in enough cases that we can assume it as a constraint for this problem.
 (Please let me know if you have a counter-example.)
 
-We don't need to consider compound problems that need to be solved by splitting into rows and columns simultaneously because you a compound problem (e.g. `"a-b-c/d-e-f/g-h-i"`) can always be solved it by first splitting into rows and then into columns.
+We don't need to consider compound problems that need to be solved by splitting into rows and columns simultaneously because a compound problem (e.g. `"a-b-c/d-e-f/g-h-i"`) can always be solved by first splitting into rows and then into columns.
 
 ## Solutions
 
