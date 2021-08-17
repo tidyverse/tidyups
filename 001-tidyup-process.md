@@ -2,7 +2,8 @@
 # Tidyup 1: what is a tidyup?
 
 **Champion**: Hadley Wickham  
-**Co-champion**: ??? **Status**: Draft
+**Co-champion**: Tracy Teal  
+**Status**: Accepted
 
 ## Abstract
 
@@ -13,9 +14,9 @@ record our decisions, and collect feedback from the community. This
 document proposes the **tidyup** as a lightweight way of navigating that
 process.
 
-For now, tidyups can only be proposed by the tidyverse team, but we plan
-to open up the process to the wider community once we have more
-experience with it.
+For now, tidyups can only be proposed by the tidyverse team at RStudio,
+but we plan to open up the process to the wider community once we have
+more experience with it.
 
 ## Motivation
 
@@ -43,6 +44,12 @@ tidyup. Tidyups follow a standard process that ultimately leads to an
 describe the basic process, the sections that most tidyups should
 contain, and a few notes about the scope of tidyups.
 
+The goal is to reach [rough
+consensus](https://datatracker.ietf.org/doc/html/rfc7282): not everyone
+needs to agree on every detail, but there should be a general belief
+that the proposal is a net positive and all major concerns should be
+documented, even if not resolved.
+
 ### Process
 
 1.  **Propose**. Start by raising idea in tidyverse slack or weekly
@@ -59,10 +66,11 @@ contain, and a few notes about the scope of tidyups.
     prepare to review the proposal with a focus on any parts that need
     extra discussion. Soon after the meeting, review the meeting notes
     and update the tidyup with needed changes and clarifications. If the
-    proposal needs more discussion, repeat this step.
+    proposal needs more discussion, repeat this step. If the proposal is
+    ready for wider discussion, merge the PR and continue.
 
     (Depending on the complexity of implementation, the next two steps
-    can be completed in either order)
+    can be completed in either order.)
 
 4.  **Implement**. Create a reference implementation in one or more PRs
     to the appropriate repos. Update the tidyup with a link to the PRs
@@ -70,9 +78,10 @@ contain, and a few notes about the scope of tidyups.
 
 5.  **Community feedback**. Ensure that you’ve rendered the `.Rmd` so
     it’s easy for others to read. Create a new issue that invites
-    feedback, tag community members who’s feedback might be particularly
-    helpful, set a date when the review period will end. Once the review
-    period ends, update the tidyup then close the issue.
+    feedback, tag community members who might be particularly helpful,
+    and set a date when the review period will end (at least two weeks
+    later). Once the review period ends, update the tidyup then close
+    the issue.
 
 6.  **Final review**. Once both previous steps are completed, book
     another tidyverse meeting for final sign off.
@@ -120,6 +129,10 @@ take in a new tidyup at a glance.
 
 -   **Open issues**: While proposal is in process, record open issues
     that require further discussion.
+
+-   **Unresolved questions**: Track unresolved questions and lingering
+    concerns that did not get resolved in the PR, but need to be tracked
+    for future discussion.
 
 -   **Implementation**. Once available, provide a link to any PRs needed
     to implement the proposal.
