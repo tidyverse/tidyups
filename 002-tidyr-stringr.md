@@ -287,16 +287,14 @@ data tidying task.
 -   Should `convert` continue to exist? Should it use `type.convert()`
     or `readr::type_convert()`? How to override imputed types?
 
-`separate_*_*()` works similarly by instead of taking character vector,
-takes pair of data frame + tidyselect specification. Also has `remove`
-argument which controls whether or not the input column is removed.
-
-### Implementation
-
-The vast majority of the work will occur in the stringr functions. The
-tidyr functions would primarily be wrappers that take care of removing
-the old column and adding the new rows/columns to the input data frame.
-tidyr would require a new helper similar to
+The vast majority of the work will occur in the stringr functions, and
+the tidyr functions will inherit their arguments. `separate_*_*()` will
+work similarly by instead of taking character vector, takes pair of data
+frame + tidyselect specification. Also has `remove` argument which
+controls whether or not the input column is removed. The tidyr functions
+would primarily be wrappers that take care of removing the old column
+and adding the new rows/columns to the input data frame. tidyr would
+require a new helper similar to
 [`inflate()`](https://github.com/tidyverse/dplyr/pull/5888).
 `tidyr::uncount()` and `tidyr::separate_rows()` would be rewritten to
 use this new function.
@@ -316,3 +314,5 @@ unappealing to put in tidyr. Use stringrb? Particularly code for
 handling too many/too few matches.
 
 ## Implications for teaching
+
+Need to update R4DS.
