@@ -78,7 +78,7 @@ Cons:
 
 Pro:
 
--   Greatest reduction in packages.
+-   Greatest reduction in organizations.
 
 -   Easy story to tell (now that RStudio is a PBC, we have 0% concerns about it as long term steward of this code).
 
