@@ -3,7 +3,9 @@
 
 **Champion**: Davis
 
-**Status**: Proposal
+**Co-Champion**: Hadley
+
+**Status**: Accepted
 
 ## Abstract
 
@@ -150,7 +152,7 @@ However, making this switch also has potential negative impacts:
 -   Surprising users if the new ordering does not match the previous
     one.
 
-## Proposal
+## Solution
 
 To switch to `vec_order()` internally while surprising the least amount
 of users, it is proposed that the data frame method for `arrange()` gain
@@ -212,7 +214,7 @@ generating a sort key + sorting it in the C locale is generally still
 users can specify `.locale = "C"` to get the maximum benefits of radix
 ordering.
 
-## Reference Implementation
+## Implementation
 
 -   Using `vec_order()` in `arrange()`, and adding `.locale`
 
@@ -276,6 +278,39 @@ arrange(tbl, x, .locale = "da")
 
 While these three variants of `arrange()` are superseded, we have
 decided to add a `.locale` argument to each of them anyways.
+
+## Unresolved Questions
+
+stringi provides various options for fine tuning the sorting method
+through `stringi::stri_opts_collator()`. The most useful of these is
+`numeric`, which allows for natural sorting of strings containing a mix
+of alphabetical and numeric characters.
+
+``` r
+library(stringi)
+
+x <- c("A1", "A100", "A2")
+
+# Compares the 2nd character of each string as 1 <= 1 <= 2
+stri_sort(x, locale = "en")
+```
+
+    ## [1] "A1"   "A100" "A2"
+
+``` r
+# Compares 1 <= 2 <= 100
+opts <- stri_opts_collator(locale = "en", numeric = TRUE)
+stri_sort(x, opts_collator = opts)
+```
+
+    ## [1] "A1"   "A2"   "A100"
+
+Feedback suggested that it might be useful to allow `.locale` to accept
+a `stri_opts_collator()` list to fine tune the procedure used by
+`arrange()`, but ultimately we decided not to add this at this time
+because most of the arguments to `stri_opts_collator()` are extreme
+special cases. We may return to this in the future if it proves to be a
+popular request.
 
 ## Alternatives
 
