@@ -3,7 +3,7 @@
 
 **Champion**: Hadley Wickham  
 **Co-champion**: Tracy Teal  
-**Status**: Proposal
+**Status**: Accepted
 
 ## Abstract
 
@@ -109,6 +109,12 @@ An author possesses three special powers. They:
 
 Authors are expected to follow our standard processes, such as:
 
+-   **Welcoming and inclusive**: being friendly is a core value of the
+    tidyverse and we strive to create an inclusive atmosphere in our
+    GitHub interactions. As an author, you’ll be listed as a “member” of
+    the tidyverse across all repos, so also please bear in mind your
+    special status in other repos.
+
 -   **Code contribution**: code is usually contributed via PR, even for
     authors who could push directly.
 
@@ -194,10 +200,11 @@ The maintainer then sends the following email to the proposed author:
 >
 > In recognition of your significant contributions to {package}, would
 > you be interested in becoming a package author? You can read about the
-> rights and responsibilities of a package author at …, but in short,
-> being an author means that you’ll be acknowledged in `Authors@R`,
-> given write permission on GitHub and help maintain the welcoming and
-> inclusive tone of the project. You’ll continue to use PRs to
+> rights and responsibilities of a package author at
+> <https://github.com/tidyverse/tidyups/blob/main/004-governance.md#authors>,
+> but in short, being an author means that you’ll be acknowledged in
+> `Authors@R`, given write permission on GitHub, and added to the
+> tidyverse authors GitHub team. You’ll continue to use PRs to
 > contribute code, but merge your own PRs once they’ve been reviewed,
 > and you can now review PRs from others.
 >
@@ -210,15 +217,12 @@ The maintainer then sends the following email to the proposed author:
 > -   Re-builds the documentation to get updated package docs.
 >
 > I’ll then give you write access and approve the PR, then you can
-> squash-merge it. This would be our workflow going forward. (You’ll
-> also be able to request reviews from me and other authors as needed).
+> squash-merge it, which will be our PR workflow going forward. (You’ll
+> also be able to request reviews from me and other authors as needed.)
 >
 > Thanks for all your work on {package}!
 >
 > {your_name}
-
-(After this tidyup is approved, the template will become a usethis
-function.)
 
 Once the author responds:
 
