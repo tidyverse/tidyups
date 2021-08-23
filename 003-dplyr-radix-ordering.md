@@ -51,7 +51,7 @@ this radix ordering algorithm is when compared against the defaults of
 
 ``` r
 library(stringi)
-library(vctrs) # r-lib/vctrs#1375
+library(vctrs) # r-lib/vctrs#1435
 set.seed(123)
 
 # 10,000 random strings, sampled to a total size of 1,000,000
@@ -222,7 +222,7 @@ ordering.
 
 -   Renaming `vec_order_radix()` to `vec_order()`
 
-    -   <https://github.com/r-lib/vctrs/pull/1375>
+    -   <https://github.com/r-lib/vctrs/pull/1435>
 
 ## Backwards Compatibility
 
