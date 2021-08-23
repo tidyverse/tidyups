@@ -64,9 +64,11 @@ I think we can break splitting down into two largely independent components:
 
 -   How do you specify the pieces?
 
-    -   By length/position, e.g. `c(1, 5, 10)`.
+    -   By length/position, e.g. `c(1, 3, 2)`/`c(1, 4, 6)`. split up string into piece of length 2 (more likely to go into rows).
     -   By a regular expression pattern, e.g. `","`, `"\s+"`.
-    -   With regular expression "groups" formed by `()`,`"a(b)c".`
+    -   (Split by multiple separators in order; see question at end) Comes up in file names too.
+    -   With regular expression "groups" formed by `()`,`"a(b)c"`.
+    -   Might be worth sketching the process the leads to data in these various forms. `paste(x, "-", y, "|", z)`, `paste(x, collapse = "|")`, ...
 
 -   How do the piece vary from element to element?
 
@@ -86,6 +88,7 @@ The following table matches them up with existing stringr and tidyr functions:
 | Pattern | Named/fixed     | `str_split_n()` | `separate()`      |
 | Pattern | Unnamed/varying | `str_split()`   | `separate_rows()` |
 | Group   | Named/fixed     | `str_match()`   | `extract()`       |
+| Group   | Unnamed/varying |                 |                   |
 
 Note that `separate()` is shown in two locations, and there are a number of empty cells.
 Interestingly, there's no stringr function that allows you to extract multiple pieces by position; you currently have to call `str_sub()` multiple times yourself.
@@ -132,6 +135,27 @@ These names are guided by the following thinking:
     There's something nice about an s verb for tidyr since it feels "string-y".
 
     For the purpose of completeness, other unused split/separate synonyms: fracture, cleave, snap, splinter, divide, sever, rend, dissect.
+
+Another option: `separate_wider()` + `separate_longer()` with three mutually exclusive arguments.
+`at`, `by`, and `group` — although might call `position`, `delim`, `group`.Plus `str_separate_wider()` and `str_separate_longer()`.
+Four new functions instead of 10.
+
+`split = by_position(1, 2, 3)` / `split = by_width(1, 2, 3)`  
+`split = by_separator(",", ignore.case = TRUE)`  
+`split = by_regex_group("a(.)c")` (`by_group` is too short/ambiguous)
+
+`split` defines how to break up the string into pieces.
+There are five basic options which are further documented individually
+
+-   `by_position(1, 2, 10)` splits into in two strings
+
+```{r}
+split_at = c(1, 2, 3) # is this widths or positions?
+split_by = c(",")
+split_group = c("a(.)c")
+```
+
+One other danger is that user might call `someotherfunction(x, by_position(1, 2, 3))`.
 
 ### Eliminate tidyr functions
 
@@ -191,9 +215,8 @@ Either way, there's no easy fix in sight, and it seems unappealing to force folk
 -   `str_*_*_wider()` needs a `col_names` argument and arguments that controls what happens if there are too many/too few pieces.
     Probably needs `names_sep` for consistency with `unnest_wider()`.
 
-```{=html}
 <!-- -->
-```
+
 -   `str_separate_group_wider()` has a few options for specifying names:
 
     -   Named groups `"(?<type>.*)|(?<fruit>orange|apple)`
@@ -226,3 +249,7 @@ Particularly code for handling too many/too few matches.
 ## Implications for teaching
 
 Need to update R4DS.
+
+## Questions
+
+-   Another case: `"(.*),(.*)-(.*)"` — equivalent to `c(",", "-")` (if that worked, but it doesn't)
