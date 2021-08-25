@@ -59,11 +59,16 @@ Cons:
 
 -   Worsens the existing semantic overloading of tidyverse: it's a package, it's a set of packages loaded by `library(tidyverse)`, it's a set of packages installed by `install.packages("tidyverse")`, **and** it's a GitHub organisation.
 
-    Could work to counter this with consistent tags, website themes, and more details in README. It would be useful to include a block at the top of the readme aimed at the non-expert Github users that was not shown on the package website.
+    Could work to counter this with consistent tags, website themes, and more details in README.
+    It would be useful to include a block at the top of the readme aimed at the non-expert Github users that was not shown on the package website.
 
--   Binds all packages more closely to tidyverse. This might be less appealing for external developers (e.g. Jeroen Ooms, Michel Lang) and for other RStudio teams we might hope would also migrate to one org.
+-   Binds all packages more closely to tidyverse.
+    This might be less appealing for external developers (e.g. Jeroen Ooms, Michel Lang) and for other RStudio teams we might hope would also migrate to one org.
 
--   No longer a one-to-one relationship between package homepage and GitHub organisation. (But could resolve in a second phase).
+    Particularly problematic for gert, which is an ROpenSci project, so if we move to tidyverse, it would probably need to move to a different repo.
+
+-   No longer a one-to-one relationship between package homepage and GitHub organisation.
+    (But could resolve in a second phase).
 
 -   Lose ability to bury less-important packages in r-lib; i.e. harder to highlight most important packages in tidyverse.
 

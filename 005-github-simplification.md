@@ -87,6 +87,10 @@ Cons:
     and for other RStudio teams we might hope would also migrate to one
     org.
 
+    Particularly problematic for gert, which is an ROpenSci project, so
+    if we move to tidyverse, it would probably need to move to a
+    different repo.
+
 -   No longer a one-to-one relationship between package homepage and
     GitHub organisation. (But could resolve in a second phase).
 
