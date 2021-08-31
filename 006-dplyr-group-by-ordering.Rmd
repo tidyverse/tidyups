@@ -121,6 +121,8 @@ We feel that the potential performance benefits from switching to `vec_locate_so
 
 Documentation for both `summarise()` and `group_by()` would be updated to mention the new behavior with character vectors, and would encourage the usage of `arrange()` after `summarise()` if the returned ordering is important. A pre-release blog post would also mention this change.
 
+To ease the transition, a new *temporary* global option, `dplyr.legacy_group_by_locale`, will be added and documented inside `group_by()`. If set to `TRUE`, the old grouping algorithm will be used, which will again respect the system locale. This should be used *extremely* sparingly, and we only expect this to be used in long analysis scripts for a quick fix. In a future minor version of dplyr, this option will be deprecated and ultimately removed, so it is encouraged that code be updated with an explicit `arrange()` call after the grouped operation rather than using this option.
+
 ## Implementation
 
 -   vctrs PR for exporting `vec_locate_sorted_groups()`
@@ -133,7 +135,7 @@ Documentation for both `summarise()` and `group_by()` would be updated to mentio
 
 ## Backwards Compatibility
 
-It is difficult to know how much "in the wild" user code will break as a result of changing from using the system locale to the C locale in `group_by()`. Ideally, users won't be relying on row order for most of their analysis scripts, but we are empathetic to the fact that this is not always the case. Our plan is to run reverse dependency checks and help fix any package code with issues that arise from this, and to provide a pre-release blog post noting this change so that users can update their code as required.
+It is difficult to know how much "in the wild" user code will break as a result of changing from using the system locale to the C locale in `group_by()`. Ideally, users won't be relying on row order for most of their analysis scripts, but we are empathetic to the fact that this is not always the case. Our plan is to run reverse dependency checks and help fix any package code with issues that arise from this, and to provide a pre-release blog post noting this change so that users can update their code before this version releases. Combined with the `dplyr.legacy_group_by_locale` global option, we hope that these precautions will make the transition period as painless as possible.
 
 ## Unresolved Questions
 
@@ -158,4 +160,4 @@ We briefly considered letting `group_by()` internally compute groups ordered by 
 
 ### Give `group_by()` a `.locale` argument
 
-In [Radix Ordering in ](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)`dplyr::arrange()`, a `.locale` argument was added to `arrange()` to explicitly control the locale used while sorting. An argument could be made to add a `.locale` argument to `group_by()` as well, which would allow users to change to something other than the C locale while grouping. However, because `group_by()` returns a grouped data frame that has to recompute its group information at various times, many other functions besides `group_by()` would also have to gain a `.locale` argument. Additionally, for methods like `[.grouped_df`, we would need some way to "remember" that the user originally called `group_by()` with a particular locale, so that we can recompute groups in the same way. Ultimately this was deemed too complicated for not enough benefit.
+In [Radix Ordering in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)`dplyr::arrange()`, a `.locale` argument was added to `arrange()` to explicitly control the locale used while sorting. An argument could be made to add a `.locale` argument to `group_by()` as well, which would allow users to change to something other than the C locale while grouping. However, because `group_by()` returns a grouped data frame that has to recompute its group information at various times, many other functions besides `group_by()` would also have to gain a `.locale` argument. Additionally, for methods like `[.grouped_df`, we would need some way to "remember" that the user originally called `group_by()` with a particular locale, so that we can recompute groups in the same way. Ultimately this was deemed too complicated for not enough benefit.

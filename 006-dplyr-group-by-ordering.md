@@ -166,6 +166,16 @@ to mention the new behavior with character vectors, and would encourage
 the usage of `arrange()` after `summarise()` if the returned ordering is
 important. A pre-release blog post would also mention this change.
 
+To ease the transition, a new *temporary* global option,
+`dplyr.legacy_group_by_locale`, will be added and documented inside
+`group_by()`. If set to `TRUE`, the old grouping algorithm will be used,
+which will again respect the system locale. This should be used
+*extremely* sparingly, and we only expect this to be used in long
+analysis scripts for a quick fix. In a future minor version of dplyr,
+this option will be deprecated and ultimately removed, so it is
+encouraged that code be updated with an explicit `arrange()` call after
+the grouped operation rather than using this option.
+
 ## Implementation
 
 -   vctrs PR for exporting `vec_locate_sorted_groups()`
@@ -185,7 +195,9 @@ their analysis scripts, but we are empathetic to the fact that this is
 not always the case. Our plan is to run reverse dependency checks and
 help fix any package code with issues that arise from this, and to
 provide a pre-release blog post noting this change so that users can
-update their code as required.
+update their code before this version releases. Combined with the
+`dplyr.legacy_group_by_locale` global option, we hope that these
+precautions will make the transition period as painless as possible.
 
 ## Unresolved Questions
 
