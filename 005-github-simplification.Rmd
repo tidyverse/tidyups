@@ -13,10 +13,10 @@ Status: draft
 ## Motivation
 
 Originally, we divided tidyverse and r-lib because we thought it was important to keep data science and package development tools separate.
-Then when tidymodels kicked off, it seem natural for it to have its own home (and then other teams at RStudio copied this principle).
+Then when tidymodels kicked off, it seemed natural for it to have its own home (and then other teams at RStudio copied this principle).
 But there are some downsides to having multiple organisations for the tidyverse team:
 
--   While the distinction between tidyverse, r-lib, and tidymodels is at reasonably strong in our heads, it's hard for users to articulate these differences, and to learn/remember exactly which organisation a package belongs to.
+-   While the distinction between tidyverse, r-lib, and tidymodels is reasonably strong in our heads, it's hard for users to articulate these differences, and to learn/remember exactly which organisation a package belongs to.
     This is particularly hard when you look holistically at all packages made by RStudio.
 
 -   There are a few packages that I am confused about:
@@ -24,8 +24,8 @@ But there are some downsides to having multiple organisations for the tidyverse 
     -   Is rvest programming or data science? what about httr?
     -   usethis is technically programming, it's very user facing, and we expect data scientists might use it for analysis projects.
     -   glue is useful for data science but designed to be zero dep specifically for use by package developers.
-    -   Both tibble and magrritr are technically user-facing, but most people use via other packages. tibble is now really mostly about defining a data structure.
-    -   modelr is package that initially made sense in tidyverse, but is now mostly deprecated.
+    -   Both tibble and magrritr are technically user-facing, but most people use them via other packages. tibble is now really mostly about defining a data structure.
+    -   modelr is a package that initially made sense in tidyverse, but is now mostly deprecated.
     -   googledrive is not really about data analysis or package development.
     -   vroom is in r-lib, readr is in tidyverse.
 
