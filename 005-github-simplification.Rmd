@@ -14,7 +14,7 @@ Status: draft
 
 Originally, we divided tidyverse and r-lib because we thought it was important to keep data science and package development tools separate.
 Then when tidymodels kicked off, it seemed natural for it to have its own home (and then other teams at RStudio copied this principle).
-But there are some downsides to having multiple organisations for the tidyverse team:
+But there are some downsides to having many open source organisations for RStudio:
 
 -   While the distinction between tidyverse, r-lib, and tidymodels is reasonably strong in our heads, it's hard for users to articulate these differences, and to learn/remember exactly which organisation a package belongs to.
     This is particularly hard when you look holistically at all packages made by RStudio.
@@ -44,9 +44,11 @@ I think there are four possibilities:
 -   Move r-lib, tidyverse, and tidymodel repos to a **new org**.
 -   Move r-lib, tidyverse, and tidymodel to the **rstudio org**.
 
-These cases only affect GitHub organisations and in the short term all other websites would stay as is.
-This means that (e.g.) vroom would continue to live at vroom.r-lib.org.
-In the longer term, we'd probably make it vroom.{orgname}.org, but this would required some thought about how to manage the redirects, and whether it makes sense for (e.g.) parsnip to live at parsnip.{orgname}.org while the main tidymodels website continues to live at tidymodels.org.
+Currently, I think the least worst (but still worthwhile) option is to move everything to tidyverse.
+
+These will affect both GitHub organisations websites, so all package websites would become subdomains of `{orgname}.org`.
+This means that (e.g.) vroom would move from `vroom.r-lib.org` to `vroom.{orgname}.org`.
+Package websites would keep their existing branding, so that tidyverse and tidymodels sites would continue to look visually distinct (but related).
 
 ### Move to tidyverse org
 
@@ -114,7 +116,8 @@ Cons:
 ## Open questions
 
 -   GitHub's existing forwarding should handle most cases, but there a few cases where you'll need to update the urls in the GitHub repo. But `usethis::pr_*()` functions currently need you to have the correct remote URL stored in your local git config. So would need to update usethis before we embarked on larger repo movement.
--   Should we consider the moving the websites as part of this process? Yes. If so, how do we manage the redirects? Will need to set up some external server.
+-   How do we handle website directs?
 -   Should r-dbi be included? Probably not because it includes DBI which is very much not RStudio or tidyverse.
 -   How do we clearly communicate what's happening, and how do we update how we have described "tidyverse" in various places?
--   If we choose option 1, how does this affect future authors of a putative 2nd edition of tidyverse paper?
+-   If we choose option 1, how does this affect future authors of a putative 2nd edition of tidyverse paper? Radically increases authorship, but I think that's ok. It's like a particle accelerator paper — it takes a lot of people to make good software!
+-   If we move r-lib repos, need to generate list of all affected developers so they can give us feedback.
