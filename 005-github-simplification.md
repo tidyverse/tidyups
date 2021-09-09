@@ -11,12 +11,12 @@ Status: draft
 
 Originally, we divided tidyverse and r-lib because we thought it was
 important to keep data science and package development tools separate.
-Then when tidymodels kicked off, it seem natural for it to have its own
-home (and then other teams at RStudio copied this principle). But there
-are some downsides to having multiple organisations for the tidyverse
-team:
+Then when tidymodels kicked off, it seemed natural for it to have its
+own home (and then other teams at RStudio copied this principle). But
+there are some downsides to having multiple organisations for the
+tidyverse team:
 
--   While the distinction between tidyverse, r-lib, and tidymodels is at
+-   While the distinction between tidyverse, r-lib, and tidymodels is
     reasonably strong in our heads, it’s hard for users to articulate
     these differences, and to learn/remember exactly which organisation
     a package belongs to. This is particularly hard when you look
@@ -29,11 +29,11 @@ team:
         we expect data scientists might use it for analysis projects.
     -   glue is useful for data science but designed to be zero dep
         specifically for use by package developers.
-    -   Both tibble and magrritr are technically user-facing, but most
-        people use via other packages. tibble is now really mostly about
-        defining a data structure.
-    -   modelr is package that initially made sense in tidyverse, but is
-        now mostly deprecated.
+    -   Both tibble and magrittr are technically user-facing, but most
+        people use them via other packages. tibble is now really mostly
+        about defining a data structure.
+    -   modelr is a package that initially made sense in tidyverse, but
+        is now mostly deprecated.
     -   googledrive is not really about data analysis or package
         development.
     -   vroom is in r-lib, readr is in tidyverse.
@@ -89,13 +89,14 @@ Cons:
 
     Particularly problematic for gert, which is an ROpenSci project, so
     if we move to tidyverse, it would probably need to move to a
-    different repo.
+    different organisation.
 
 -   No longer a one-to-one relationship between package homepage and
     GitHub organisation. (But could resolve in a second phase).
 
 -   Lose ability to bury less-important packages in r-lib; i.e. harder
-    to highlight most important packages in tidyverse.
+    to highlight most important packages in tidyverse because the number
+    of packages is overwhelming.
 
 ### Move to r-lib org
 
@@ -148,7 +149,9 @@ Cons:
 
 -   GitHub’s existing forwarding should handle most cases, but there a
     few cases where you’ll need to update the urls in the GitHub repo.
-    But are there any existing workflows that this would break?
+    But `usethis::pr_*()` functions currently need you to have the
+    correct remote URL stored in your local git config. So would need to
+    update usethis before we embarked on larger repo movement.
 -   Should we consider the moving the websites as part of this process?
     Yes. If so, how do we manage the redirects? Will need to set up some
     external server.
