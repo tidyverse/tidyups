@@ -5,7 +5,7 @@
 
 **Co-Champion**: Hadley
 
-**Status**: Proposal
+**Status**: Accepted
 
 ## Abstract
 
@@ -184,9 +184,11 @@ the grouped operation rather than using this option.
 
 -   dplyr PR for converting to `vec_locate_sorted_groups()`
 
-    -   TODO
+    -   <https://github.com/tidyverse/dplyr/pull/6018>
 
-## Backwards Compatibility
+## Backwards compatibility
+
+### Code breakage
 
 It is difficult to know how much “in the wild” user code will break as a
 result of changing from using the system locale to the C locale in
@@ -199,10 +201,10 @@ update their code before this version releases. Combined with the
 `dplyr.legacy_group_by_locale` global option, we hope that these
 precautions will make the transition period as painless as possible.
 
-## Unresolved Questions
+### Usage with `arrange()`
 
-How confusing is it that something like this doesn’t respect the `"en"`
-locale that the user used in `arrange()`?
+Initially, we worried that the following snippet of code would cause
+some confusion:
 
 ``` r
 df %>%
@@ -211,12 +213,25 @@ df %>%
   summarise() # result ordered in C locale
 ```
 
-As mentioned elsewhere, our advice would be to `arrange()` after the
-`summarise()` if you really care about the order of the result.
+Prior to dplyr 1.1.0, `arrange()` and `group_by()` both used the system
+locale, so they always sorted in a consistent way, meaning that this was
+never an issue.
 
-In dplyr 1.0.7 and earlier, `arrange()` and `group_by()` both used the
-system locale, so they always sorted in a consistent way, meaning that
-this was never an issue.
+After gathering some
+[feedback](https://github.com/tidyverse/tidyups/issues/21#issuecomment-917958890),
+it seems that arranging directly before computing a grouped summary is
+rather rare. Arranging *after* the summary is much more common since it:
+
+-   Matches hows this is done in SQL
+
+-   Often requires a modifier like `desc()` to tweak the ordering
+
+-   Is often the last step in a pipeline, used only for better
+    readability
+
+Because of the assumed rarity of the appearance of this code chunk, we
+are willing to accept the (hopefully) minimal amount of confusion it may
+cause in favor of the benefits we get from this change.
 
 ## Alternatives
 
