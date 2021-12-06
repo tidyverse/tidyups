@@ -109,11 +109,12 @@ An author possesses three special powers. They:
 
 Authors are expected to follow our standard processes, such as:
 
--   **Welcoming and inclusive**: being friendly is a core value of the
-    tidyverse and we strive to create an inclusive atmosphere in our
-    GitHub interactions. As an author, you’ll be listed as a “member” of
-    the tidyverse across all repos, so also please bear in mind your
-    special status in other repos.
+-   **Welcoming and inclusive**: Kindness and gratitude are core values
+    of the tidyverse and we strive to create an [inclusive
+    atmosphere](https://github.com/tidyverse/tidyverse.org/blob/master/CODE_OF_CONDUCT.md)
+    in our GitHub interactions. As an author, you’ll be listed as a
+    “member” of the tidyverse across all repos, so also please bear in
+    mind your special status in other repos.
 
 -   **Code contribution**: code is usually contributed via PR, even for
     authors who could push directly.
