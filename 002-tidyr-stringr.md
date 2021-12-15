@@ -7,7 +7,7 @@
 
 ## Abstract
 
-tidyr provides a handful functions like `separate()` and `extract()`
+tidyr provides a handful of functions like `separate()` and `extract()`
 that perform string manipulation. Unfortunately, these functions are
 only weakly connected to their stringr equivalents, making them harder
 to learn and remember. This tidyup proposes a new cohesive family of
@@ -93,7 +93,7 @@ largely independent components:
     -   Does each string have the same number of components which we
         might name and put in columns?
 
-    -   Does each string potential have a varying number of components
+    -   Does each string potentially have a varying number of components
         which we’d put into rows?
 
     (We don’t need to consider splitting into rows and columns
