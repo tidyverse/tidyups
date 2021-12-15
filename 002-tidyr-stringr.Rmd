@@ -14,7 +14,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## Abstract
 
-tidyr provides a handful functions like `separate()` and `extract()` that perform string manipulation.
+tidyr provides a handful of functions like `separate()` and `extract()` that perform string manipulation.
 Unfortunately, these functions are only weakly connected to their stringr equivalents, making them harder to learn and remember.
 This tidyup proposes a new cohesive family of string manipulation functions to tackle common problems that arise during data tidying.
 The existing functions will remain so existing code is unaffected, but will be superseded to steer folks towards a more consistent API.
@@ -71,7 +71,7 @@ I think we can break splitting down into two largely independent components:
 
     -   Does each string have the same number of components which we might name and put in columns?
 
-    -   Does each string potential have a varying number of components which we'd put into rows?
+    -   Does each string potentially have a varying number of components which we'd put into rows?
 
     (We don't need to consider splitting into rows and columns simultaneously because a compound problem can always be solved by first splitting into rows and then into columns.)
 
