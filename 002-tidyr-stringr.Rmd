@@ -91,10 +91,19 @@ Note that `separate()` is shown in two locations, and there are a number of empt
 Interestingly, there's no stringr or tidyr function that allows you to extract multiple pieces by position; you currently have to call `str_sub()` multiple times yourself.
 
 So solving this challenge is primarily about replacing this inconsistent and incomplete table with a consistent and complete set of functions.
+We considered three solutions:
 
-### One function per case
+-   One function for each case.
+-   One function for each direction (named/fixed vs unnamed/varying)
+-   Eliminating the tidyr functions.
 
-I propose the following set of function names:
+After considering the advantages and disadvantages of each possible solution, we decided on the first, which is described below.
+The other two are described later, in the alternatives section.
+
+### One function for each case
+
+Given that we have a 5 (3 \* 2 - 1) x 2 (tidyr/stringr) table, an obvious solution is to put one function in each cell, using a consistent naming scheme to highlight the structure of the table.
+I propose the following names:
 
 | By      | Into            | stringr                      | tidyr                    |
 |---------|-----------------|------------------------------|--------------------------|
@@ -131,29 +140,23 @@ These names are guided by the following thinking:
     I initially considered `split` since it's shorter and has a strong connection to `str_split()`, but `base::split()` means something fairly different.
     There's something nice about an s verb for tidyr since it feels "string-y".
 
-    For the purpose of completeness, other unused split/separate synonyms: fracture, cleave, snap, splinter, divide, sever, rend, dissect.
+    For the purpose of completeness, other unused split/separate synonyms include fracture, cleave, snap, splinter, divide, sever, rend, and dissect.
+    But these synonyms mostly have negative connotations, rather than the neutral connotation of separate.
 
 ### Implementation
 
 The vast majority of the work will occur in the stringr functions, with the tidyr functions being responsible for adding and removing (if `remove` is `TRUE`) columns.
-`separate_*_longer()` will need a new helper similar to [`inflate()`](https://github.com/tidyverse/dplyr/pull/5888), which can also be used in `tidyr::uncount()` and `tidyr::separate_rows()`.
+`*_wider()` will post-process with `unpack()`; `*_longer()` will postprocess with `unchop()`.
 
 Other considerations:
 
 -   `*_wider()` needs a `col_names` argument and arguments that controls what happens if there are too many/too few pieces. Probably needs `names_sep` for consistency with `unnest_wider()`.
-
-<!-- -->
-
+-   `*_wider()` needs to be able to control what happens if there are too few or too many pieces in an element (the `fill` and `extra` arguments of `separate()`).
 -   `str_separate_group_wider()` needs to be able to specify names inside the pattern:
-
     -   Named groups `"(?<type>.*)|(?<fruit>orange|apple)`
 
     -   Named vector: `c(type = ".*", "|", fruit = "orange|apple"))`
-
--   For `_wider()`, should `convert` continue to exist?
-    Should it use `type.convert()` or `readr::type_convert()`?
-    Can you override imputed types or do you need to switch to a different function?
-    Or use `transform` argument like `unnest_wider()`?
+-   For `_wider()`, use `transform`argument to match `unnest_wider()` and `pivot_wider()` instead of `convert`.
 
 ### stringr dependency
 
@@ -168,7 +171,7 @@ We'll open an issue to track how much pain this causes for people, and consider 
 
 These alternatives were considered and rejected.
 
-### One function per column
+### One function for each direction
 
 Another option is to divide the problem into two parts:
 
@@ -247,7 +250,35 @@ df %>%
 
 But it's quite hard to explain why this works, and the use of `summarise()` means that you need to explicitly list any variables that you want to leave as is.
 This possibly speaks to a [missing verb](https://github.com/tidyverse/dplyr/issues/5874) in dplyr but it's also possible that creating rows is fundamentally a tidyr operation.
-Either way, there's no easy fix in sight, and it seems unappealing to force folks to learn sophisticated dplyr idioms in order to tackle a routine data tidying task.
+Indeed, the code is easier to understand if we use `tidyr::unchop()`:
+
+```{r}
+df %>%
+  mutate(x = str_separate_by_longer(x, "-")) %>%
+  unchop(x)
+```
+
+This is a nice solution, but requires at least a basic understanding of lists and list-columns, and still needs a function from tidyr.
+This might be the way we think about the tidyr wrappers ourselves, but it's unappealing to requirement this level of knowledge of users who just want to turn their strings into usable variables.
+
+\@DavisVaughan also pointed out that these techniques compose nicely with `across()`.
+Again, requiring newer data scientists to learn these techniques seems like too much of a lift, but it's good to know that there will be smaller recomposable pieces that underlie the tidyr wrappers.
+
+```{r}
+df <- tibble(
+  x = 1:2,
+  y = c("a-c", "c-d"),
+  z = c("q-r", "z-f")
+)
+
+df %>%
+  mutate(across(c(y, z), ~str_separate_by_wider(.x, "-", c("first", "second")))) %>%
+  unpack(c(y, z), names_sep = "_")
+
+df %>%
+  mutate(across(c(y, z), ~str_separate_by_longer(.x, "-"))) %>%
+  unchop(c(y, z))
+```
 
 ## Implications for teaching
 
