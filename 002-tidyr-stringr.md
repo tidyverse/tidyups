@@ -1,0 +1,420 @@
+
+# Tidyup 2: tidyr \<-> stringr alignment
+
+**Champion**: Hadley Wickham  
+**Co-champion**: Mine Çetinkaya-Rundel  
+**Status**: Draft
+
+## Abstract
+
+tidyr provides a handful of functions like `separate()` and `extract()`
+that perform string manipulation. Unfortunately, these functions are
+only weakly connected to their stringr equivalents, making them harder
+to learn and remember. This tidyup proposes a new cohesive family of
+string manipulation functions to tackle common problems that arise
+during data tidying. The existing functions will remain so existing code
+will be unaffected, but these functions will be superseded to steer
+folks towards a more consistent API.
+
+``` r
+library(tidyr)
+library(stringr)
+```
+
+## Motivation
+
+stringr and tidyr provide surprisingly different interfaces for string
+manipulation. This means that common tasks require integrating two
+distinct syntaxes and learning more about stringr doesn’t help your use
+of tidyr.
+
+The root cause of the problem is that stringr was designed before I
+understood the importance of data frames, so stringr functions that need
+to return multiple values use matrices rather than data frames. This is
+particularly unfortunate given that `dplyr::summarise()` and `mutate()`
+can now create multiple columns from data frame results.
+
+To overcome this weakness, tidyr provides a family of string
+manipulation functions that work with data frames. Unfortunately, the
+names of the tidyr functions have little relationship to their stringr
+equivalents:
+
+-   `extract()` creates new variables from groups, and is similar to
+    `str_match()`.
+-   `separate(sep = "pattern")` creates new variables by splitting with
+    a regular expression, and is similar to `str_split_fixed()`.
+-   `separate(sep = c(2, 5, 10))` creates new variables by splitting
+    based on position, and has no equivalent in stringr.
+-   `separate_rows()` creates new rows, and is similar to `str_split()`.
+
+Additionally, tidyr uses the base R regexp engine and syntax, not the
+stringr engine and syntax. There are relatively few differences between
+the engines, but the syntax for controlling regular expression options
+(e.g. ignoring case) is very different. In the past, we have kept
+stringr out of tidyr dependencies because it can be expensive/painful to
+build stringi on linux. However, most tidyverse users will have stringr
+installed, and RSPM (RStudio Package Manager) makes stringi easier to
+install, so it would be nice to use it if available, following the
+footsteps laid by [Radix Ordering
+in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)
+[`dplyr::arrange()`](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md).
+
+Additionally there are a few gaps in the current API:
+
+-   Neither stringr nor tidyr provide a particularly nice way to work
+    with named capture groups. There’s also scope for more directly
+    matching column names to patterns if `extract()` didn’t attempt to
+    match the syntax of `separate()` so closely,
+    e.g. `str_extract(x, c(type = ".*", "|", fruit = "orange|apple"))`.
+
+-   tidyr only provides one function for splitting a string into rows,
+    not columns: `separate_rows()`. What other tidyr functions should
+    create rows?
+
+-   `separate()` can split up a string by position or by pattern. This
+    now seems too clever, and makes it hard to notice that there are two
+    different tools here.
+
+## Solution
+
+Finding a solution to this problem first requires a careful analysis of
+the possible inputs. I think we can break splitting down into two
+largely independent components:
+
+-   How do you specify the pieces? There are three common cases:
+
+    -   By width or position e.g. `c(1, 3, 2)`/`c(1, 4, 6)`. This
+        typically comes from fixed width formats.
+    -   By a regular expression pattern, e.g. `","`, `"\s+"`. This often
+        comes from `str_flatten(x, "|")` or similar.
+    -   With regular expression “groups” formed by `()`,`"a(b)c"`. This
+        handles the remaining cases.
+
+-   How do the pieces vary from element to element?
+
+    -   Does each string have the same number of components which we
+        might name and put in columns?
+
+    -   Does each string potentially have a varying number of components
+        which we’d put into rows?
+
+    (We don’t need to consider splitting into rows and columns
+    simultaneously because a compound problem can always be solved by
+    first splitting into rows and then into columns.)
+
+In principle, this should define 6 (3 \* 2) situations, but regexp
+groups always produce a fixed number of matches so one case does not
+exist. The following table matches the five cases up with existing
+stringr and tidyr functions:
+
+| By      | Into            | stringr         | tidyr             |
+|---------|-----------------|-----------------|-------------------|
+| Length  | Named/fixed     |                 | `separate()`      |
+| Length  | Unnamed/varying |                 |                   |
+| Pattern | Named/fixed     | `str_split_n()` | `separate()`      |
+| Pattern | Unnamed/varying | `str_split()`   | `separate_rows()` |
+| Group   | Named/fixed     | `str_match()`   | `extract()`       |
+
+Note that `separate()` is shown in two locations, and there are a number
+of empty cells. Interestingly, there’s no stringr or tidyr function that
+allows you to extract multiple pieces by position; you currently have to
+call `str_sub()` multiple times yourself.
+
+So solving this challenge is primarily about replacing this inconsistent
+and incomplete table with a consistent and complete set of functions. We
+considered three solutions:
+
+-   One function for each case.
+-   One function for each direction (named/fixed vs unnamed/varying)
+-   Eliminating the tidyr functions.
+
+After considering the advantages and disadvantages of each possible
+solution, we decided on the first, which is described below. The other
+two are described later, in the alternatives section.
+
+### One function for each case
+
+Given that we have a 5 (3 \* 2 - 1) x 2 (tidyr/stringr) table, an
+obvious solution is to put one function in each cell, using a consistent
+naming scheme to highlight the structure of the table. I propose the
+following names:
+
+| By      | Into            | stringr                      | tidyr                    |
+|---------|-----------------|------------------------------|--------------------------|
+| Length  | Named/fixed     | `str_separate_at_wider()`    | `separate_at_wider()`    |
+| Length  | Unnamed/varying | `str_separate_at_longer()`   | `separate_at_longer()`   |
+| Pattern | Named/fixed     | `str_separate_by_wider()`    | `separate_by_wider()`    |
+| Pattern | Unnamed/varying | `str_separate_by_longer()`   | `separate_by_longer()`   |
+| Group   | Named/fixed     | `str_separate_group_wider()` | `separate_group_wider()` |
+
+These names are guided by the following thinking:
+
+-   There should be a simple and consistent transformation between the
+    stringr and tidyr pairs. stringr functions reliably start with
+    `str_`. This suggests the tidyr functions should be the same as the
+    stringr function without the `str_` prefix.
+
+-   Suffixes should distinguish between the different ways of splitting.
+    `at` and `by` work well here since there are two main cases
+    (position and pattern) but would start to get vague if we have too
+    many other categories. The `_at` family was deprecated in dplyr so
+    some possibility for confusion; but it’s probably fairly clear that
+    the context is different here.
+
+    I don’t love `group`, because I don’t think many people think about
+    regexp `()` as creating groups (even though that’s the technical
+    name), but there doesn’t seem to be any obvious better word. This
+    function also feels a little different to “splitting” which is what
+    lead to `tidyr::extract()` but I think it’s better to keep the root
+    verb the same since there are otherwise so many similarities.
+
+-   A second suffix should distinguish between splitting into
+    fixed/named and varying/unnamed. If we assume a strong connection
+    between fixed/named and columns and varying/unnamed and rows, the
+    obvious suffixes are `wider` and `longer`.
+
+    The return type associated with these suffixes will be a little
+    different between tidyr and stringr. For stringr, `wider` implies a
+    data frame and `longer` implies a list of character vectors. For
+    tidyr, `wider` implies growing the columns and `longer` implies
+    growing the rows.
+
+    This will also influence the function arguments since `wider`
+    functions also need column names.
+
+-   Altogether this implies we need one verb to represent this whole
+    family. `separate()` seems like the natural choice since it is it
+    the closest existing function and should be familiar to many
+    tidyverse users. I initially considered `split` since it’s shorter
+    and has a strong connection to `str_split()`, but `base::split()`
+    means something fairly different. There’s something nice about an s
+    verb for tidyr since it feels “string-y”.
+
+    For the purpose of completeness, other unused split/separate
+    synonyms include fracture, cleave, snap, splinter, divide, sever,
+    rend, and dissect. But these synonyms mostly have negative
+    connotations, rather than the neutral connotation of separate.
+
+### Implementation
+
+The vast majority of the work will occur in the stringr functions, with
+the tidyr functions being responsible for adding and removing (if
+`remove` is `TRUE`) columns. `*_wider()` will post-process with
+`unpack()`; `*_longer()` will postprocess with `unchop()`.
+
+Other considerations:
+
+-   `*_wider()` needs a `col_names` argument and arguments that controls
+    what happens if there are too many/too few pieces. Probably needs
+    `names_sep` for consistency with `unnest_wider()`.
+-   `*_wider()` needs to be able to control what happens if there are
+    too few or too many pieces in an element (the `fill` and `extra`
+    arguments of `separate()`).
+-   `str_separate_group_wider()` needs to be able to specify names
+    inside the pattern:
+    -   Named groups `"(?<type>.*)|(?<fruit>orange|apple)`
+
+    -   Named vector: `c(type = ".*", "|", fruit = "orange|apple"))`
+-   For `_wider()`, use `transform`argument to match `unnest_wider()`
+    and `pivot_wider()` instead of `convert`.
+
+### stringr dependency
+
+Should these functions use stringr or not? It’s nice to keep
+dependencies low, but this will considerably increase the cost of
+implementation because they’ll need both stringr and base R
+implementations.
+
+Before committing to implementing a pure base R solution, I think we
+should discover if this is a real need. To do this, I suggest we take
+stringr as a suggested dependency that’s required by `separate_*()`.
+We’ll open an issue to track how much pain this causes for people, and
+consider a base R implementation in a future release if there’s
+significant need.
+
+## Alternatives
+
+These alternatives were considered and rejected.
+
+### One function for each direction
+
+Another option is to divide the problem into two parts:
+
+| Into            | stringr                 | tidyr               |
+|-----------------|-------------------------|---------------------|
+| Named/fixed     | `str_separate_wider()`  | `separate_wider()`  |
+| Unnamed/varying | `str_separate_longer()` | `separate_longer()` |
+
+Then each function has a `split` argument which can be one of the
+following cases:
+
+-   `by_position(1, 2, 3)`
+-   `by_width(1, 2, 3)`
+-   `by_separator(",", ignore.case = TRUE)`
+-   `by_regex_group("a(.)c")` (`by_group()` is too short/ambiguous).
+
+(This could also be defined by 3-4 mutual exclusive arguments, but that
+is hard to extend and hard to document)
+
+Pros:
+
+-   8 functions instead of 10, and extending with more splitting types
+    is easy.
+-   Composing functions in this way seems more “tidyverse” like.
+
+Cons:
+
+-   Composing the functions on your own makes it harder to see the full
+    set of options, and there’s not enough total options to make the
+    flexibility really worth it.
+-   Will be tempting to use
+    `someotherfunction(x, by_position(1, 2, 3))`.
+
+Overall, this proposal only reduces the total number of functions by
+two, in return for a small gain.
+
+### Eliminate tidyr functions
+
+Can we eliminate the tidyr wrappers altogether and just use dplyr +
+stringr? This seemed like the “obvious” solution to me at least twice,
+so I wanted to make sure to explain why it doesn’t work.
+
+To make the discussion concrete I’ll start with quick and dirty
+implementations of `str_separate_by_wider()` and
+`str_separate_by_longer()`:
+
+``` r
+str_separate_by_wider <- function(x, pattern, into) {
+  mat <- str_split_fixed(x, pattern, length(into))
+  colnames(mat) <- into
+  tibble::as_tibble(mat)
+}
+str_separate_by_longer <- function(x, pattern) {
+  str_split(x, pattern)
+}
+
+str_separate_by_wider(c("a-b", "c-d"), "-", c("first", "second"))
+#> # A tibble: 2 × 2
+#>   first second
+#>   <chr> <chr> 
+#> 1 a     b     
+#> 2 c     d
+str_separate_by_longer(c("a-b", "c-d-e"), "-")
+#> [[1]]
+#> [1] "a" "b"
+#> 
+#> [[2]]
+#> [1] "c" "d" "e"
+```
+
+We can use `str_separate_by_wider()` directly with `mutate()` to achieve
+the same affect as `separate()`:
+
+``` r
+library(dplyr, warn.conflicts = FALSE)
+
+df <- tibble(x = c("a-b", "c-d"))
+df %>% separate(x, c("first", "second"), "-")
+#> # A tibble: 2 × 2
+#>   first second
+#>   <chr> <chr> 
+#> 1 a     b     
+#> 2 c     d
+
+df %>% 
+  mutate(
+    str_separate_by_wider(x, "-", c("first", "second")), 
+    .keep = "unused"
+  )
+#> # A tibble: 2 × 2
+#>   first second
+#>   <chr> <chr> 
+#> 1 a     b     
+#> 2 c     d
+```
+
+This works because `mutate()` will create multiple columns if an unnamed
+calculation returns a data frame.
+
+However, there’s no straightforward way to use
+`str_separate_by_longer()` to create multiple columns. The simplest pure
+dplyr approach is probably to use `rowwise():`
+
+``` r
+df %>%
+  rowwise() %>% 
+  summarise(str_separate_by_longer(x, "-")[[1]])
+#> # A tibble: 4 × 1
+#>   `str_separate_by_longer(x, "-")[[1]]`
+#>   <chr>                                
+#> 1 a                                    
+#> 2 b                                    
+#> 3 c                                    
+#> 4 d
+```
+
+But it’s quite hard to explain why this works, and the use of
+`summarise()` means that you need to explicitly list any variables that
+you want to leave as is. This possibly speaks to a [missing
+verb](https://github.com/tidyverse/dplyr/issues/5874) in dplyr but it’s
+also possible that creating rows is fundamentally a tidyr operation.
+Indeed, the code is easier to understand if we use `tidyr::unchop()`:
+
+``` r
+df %>%
+  mutate(x = str_separate_by_longer(x, "-")) %>%
+  unchop(x)
+#> # A tibble: 4 × 1
+#>   x    
+#>   <chr>
+#> 1 a    
+#> 2 b    
+#> 3 c    
+#> 4 d
+```
+
+This is a nice solution, but requires at least a basic understanding of
+lists and list-columns, and still needs a function from tidyr. This
+might be the way we think about the tidyr wrappers ourselves, but it’s
+unappealing to requirement this level of knowledge of users who just
+want to turn their strings into usable variables.
+
+@DavisVaughan also pointed out that these techniques compose nicely with
+`across()`. Again, requiring newer data scientists to learn these
+techniques seems like too much of a lift, but it’s good to know that
+there will be smaller recomposable pieces that underlie the tidyr
+wrappers.
+
+``` r
+df <- tibble(
+  x = 1:2,
+  y = c("a-c", "c-d"),
+  z = c("q-r", "z-f")
+)
+
+df %>%
+  mutate(across(c(y, z), ~str_separate_by_wider(.x, "-", c("first", "second")))) %>%
+  unpack(c(y, z), names_sep = "_")
+#> # A tibble: 2 × 5
+#>       x y_first y_second z_first z_second
+#>   <int> <chr>   <chr>    <chr>   <chr>   
+#> 1     1 a       c        q       r       
+#> 2     2 c       d        z       f
+
+df %>%
+  mutate(across(c(y, z), ~str_separate_by_longer(.x, "-"))) %>%
+  unchop(c(y, z))
+#> # A tibble: 4 × 3
+#>       x y     z    
+#>   <int> <chr> <chr>
+#> 1     1 a     q    
+#> 2     1 c     r    
+#> 3     2 c     z    
+#> 4     2 d     f
+```
+
+## Implications for teaching
+
+Need to update R4DS.
+
+## Questions
