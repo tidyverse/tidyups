@@ -13,8 +13,8 @@ only weakly connected to their stringr equivalents, making them harder
 to learn and remember. This tidyup proposes a new cohesive family of
 string manipulation functions to tackle common problems that arise
 during data tidying. The existing functions will remain so existing code
-is unaffected, but will be superseded to steer folks towards a more
-consistent API.
+will be unaffected, but these functions will be superseded to steer
+folks towards a more consistent API.
 
 ``` r
 library(tidyr)
@@ -31,18 +31,19 @@ of tidyr.
 The root cause of the problem is that stringr was designed before I
 understood the importance of data frames, so stringr functions that need
 to return multiple values use matrices rather than data frames. This is
-particularly unfortunate given that `dplyr::summarse()` and `mutate()`
+particularly unfortunate given that `dplyr::summarise()` and `mutate()`
 can now create multiple columns from data frame results.
 
-To overcome this weakness, tidyr provides family of string manipulation
-functions that work with data frames. Unfortunately, the names of the
-tidyr functions have little relationship to their stringr equivalents:
+To overcome this weakness, tidyr provides a family of string
+manipulation functions that work with data frames. Unfortunately, the
+names of the tidyr functions have little relationship to their stringr
+equivalents:
 
 -   `extract()` creates new variables from groups, and is similar to
     `str_match()`.
 -   `separate(sep = "pattern")` creates new variables by splitting with
     a regular expression, and is similar to `str_split_fixed()`.
--   `separate(sep = c(2, 5, 10)`) creates new variables by splitting
+-   `separate(sep = c(2, 5, 10))` creates new variables by splitting
     based on position, and has no equivalent in stringr.
 -   `separate_rows()` creates new rows, and is similar to `str_split()`.
 
@@ -52,8 +53,9 @@ the engines, but the syntax for controlling regular expression options
 (e.g. ignoring case) is very different. In the past, we have kept
 stringr out of tidyr dependencies because it can be expensive/painful to
 build stringi on linux. However, most tidyverse users will have stringr
-installed, and RSPM makes stringi easier to install, so it would be nice
-to use it if available, following the footsteps laid by [Radix Ordering
+installed, and RSPM (RStudio Package Manager) makes stringi easier to
+install, so it would be nice to use it if available, following the
+footsteps laid by [Radix Ordering
 in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)
 [`dplyr::arrange()`](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md).
 
@@ -223,7 +225,7 @@ dependencies low, but this will considerably increase the cost of
 implementation because they’ll need both stringr and base R
 implementations.
 
-Before committing to implementation a pure base R solution, I think we
+Before committing to implementing a pure base R solution, I think we
 should discover if this is a real need. To do this, I suggest we take
 stringr as a suggested dependency that’s required by `separate_*()`.
 We’ll open an issue to track how much pain this causes for people, and
