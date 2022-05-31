@@ -1,0 +1,61 @@
+---
+output: github_document
+---
+
+# Tidyup 007: Maintaining broom tidier methods
+
+
+**Champion**: Simon 
+
+**Co-champion**: Max
+
+**Status**: Proposal
+
+## Abstract
+
+The broom team will be introducing maintenance guidelines to clarify the scope of the package and its relation to other tidier- and model-supplying packages. Given the package's wide use and long history, these guidelines prioritize backward compatibility over internal consistency and completeness. We'd like to provide a venue for community feedback on these guidelines before implementing them more formally.
+
+## Motivation
+
+Of the packages in the tidymodels, broom is the oldest, has one of the largest codebases, and is likely the most widely used. As of the writing of this tidyup, the package has been downloaded over 30 million times, and is directly depended on by over 200 CRAN packages and who-knows-how-many research analyses. The package grew organically over the course of many years---thanks to contributions from hundreds of community members---and now supplies hundreds of methods for summarizing model objects:
+
+```{r}
+library(broom)
+
+length(methods("tidy"))
+length(methods("glance"))
+length(methods("augment"))
+```
+
+Each of these factors we mention are cause for celebration, and at the same time, mean that maintaining broom with the same approach as other tidymodels packages would lead to significant breaking changes and further scope creep.
+
+## Solution
+
+We'd like to outline some general guidelines for how we'll maintain the package and advise maintainers of other tidier-supplying packages moving forward:
+
+* **New methods**: broom will no longer accept new tidier methods to the package, instead asking that they are maintained in the model-supplying package. You can read more about our tooling to help you make this happen in the ["Adding tidiers to broom"](https://cran.r-project.org/web/packages/broom/vignettes/adding-tidiers.html) vignette!
+* **Internal consistency**: We do not feel that the improvement in interface that could be gained by enforcing internal consistency (e.g. argument order, column names) is worth the potential breaking change for our dependencies.
+* **Ellipsis handling & silent failures**: Some tidier methods pass ellipses to modeling functions and others take in ellipses that are documented as unused. In the first setting, there is wide variety in how the modeling functions we wrap handle ellipses, and we thus feel there is not a principled way to "vet" ellipses before passing them along. As for the second case, we do not feel that the improvement in interface from failing with unused dots is worth the breaking change for our dependencies.
+* **Visible failures**: If a tidier visibly fails (i.e. raises an error) for currently unsupported use cases of a modeling function, we will not implement code to newly accommodate that edge case.^[See tidymodels/broom#1102 and tidymodels/broom#1090 for examples.]
+
+Note that **these guidelines largely reflect our maintenance practice in the last few years.** The introduction of these guidelines isn't a change as much as it is a reflection on our approach to maintaining broom in recent years. Communicating our approach clearly also allows us to more clearly define when an issue _is_ within the scope of the package's development.
+
+## Alternatives
+
+Other possible solutions include:
+
+* Maintaining the package with the same approach as other tidymodels packages.
+    + Continuing to ask model-supplying packages to implement _new_ tidiers could still be in line with this alternative.
+    + Depending on interpretation, this would likely lead to far-reaching breaking changes.
+* Introducing a "2nd edition" of the package. However, we anticipate that most "dependencies" of broom are not easily testable, living inside of research analyses, course materials, etc. We thus feel that the principles/implementation of new editions---like testthat 3e---are not well-applicable for broom and other tidier-supplying packages.
+
+## Implementation
+
+We plan to include the bullets in the Solution section above as a help-file in broom, and link out to those bullets to 
+
+1) decide whether an issue/PR is in scope and, if not,
+2) have somewhere to link folks to (via the pkgdown site) to explain why.
+
+## Backwards compatibility
+
+The proposed guidelines are intended to forefront backwards compatibility in future development on model tidiers.
