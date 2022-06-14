@@ -20,7 +20,7 @@ so.
 ## Motivation
 
 ``` r
-library(vctrs) # r-lib/vctrs#1441
+library(vctrs)
 library(withr)
 set.seed(42)
 ```
@@ -63,7 +63,7 @@ groups.
 # Current algorithm
 dplyr_locate_sorted_groups <- function(x) {
   out <- vec_group_loc(x)
-  vec_slice(out, vec_order_base(out$key))
+  vec_slice(out, vctrs:::vec_order_base(out$key))
 }
 ```
 
@@ -180,11 +180,11 @@ the grouped operation rather than using this option.
 
 -   vctrs PR for exporting `vec_locate_sorted_groups()`
 
-    -   <https://github.com/r-lib/vctrs/pull/1441>
+    -   <https://github.com/r-lib/vctrs/pull/1541>
 
 -   dplyr PR for converting to `vec_locate_sorted_groups()`
 
-    -   <https://github.com/tidyverse/dplyr/pull/6018>
+    -   <https://github.com/tidyverse/dplyr/pull/6297>
 
 ## Backwards compatibility
 
