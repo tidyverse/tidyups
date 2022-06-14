@@ -14,7 +14,9 @@ editor_options:
 
 ## Abstract
 
-The current algorithm used by `group_by()` computes the group locations and orders the unique grouping keys in two separate steps. Recently, vctrs has gained a new function, `vec_locate_sorted_groups()`, that can efficiently do both of these operations in one step. The purpose of this tidyup is to propose switching `group_by()`'s internal algorithm to use `vec_locate_sorted_groups()`, outlining potential drawbacks from doing so.
+The current algorithm used by `group_by()` computes the group locations and orders the unique grouping keys in two separate steps.
+Recently, vctrs has gained a new function, `vec_locate_sorted_groups()`, that can efficiently do both of these operations in one step.
+The purpose of this tidyup is to propose switching `group_by()`'s internal algorithm to use `vec_locate_sorted_groups()`, outlining potential drawbacks from doing so.
 
 ## Motivation
 
@@ -84,9 +86,13 @@ bench::mark(
 #> 2 vctrs          1.3s    1.35s    0.742      308MB    1.11
 ```
 
-The reason for the improved performance in the character columns is also the largest potential issue with this proposed change. The current algorithm used by dplyr respects the system locale when ordering character vectors, but the one used by vctrs unconditionally orders character vector groups in the C locale. Ordering in the C locale is much faster, but often produces different results from the system locale (which might be set to English, French, etc.).
+The reason for the improved performance in the character columns is also the largest potential issue with this proposed change.
+The current algorithm used by dplyr respects the system locale when ordering character vectors, but the one used by vctrs unconditionally orders character vector groups in the C locale.
+Ordering in the C locale is much faster, but often produces different results from the system locale (which might be set to English, French, etc.).
 
-This change in group ordering would be seen when a user calls `summarise()` after grouping (or any other function that uses the `group_data()`). If the C locale differs from their system locale, then the grouping columns will be returned in a different order than before. For English users, the main difference with the C locale is in how uppercase vs lowercase letters are ordered:
+This change in group ordering would be seen when a user calls `summarise()` after grouping (or any other function that uses the `group_data()`).
+If the C locale differs from their system locale, then the grouping columns will be returned in a different order than before.
+For English users, the main difference with the C locale is in how uppercase vs lowercase letters are ordered:
 
 ```{r, eval=FALSE}
 library(dplyr)
@@ -117,11 +123,16 @@ summarise(gdf, n = n())
 
 ## Solution
 
-We feel that the potential performance benefits from switching to `vec_locate_sorted_groups()` outweigh the issues that could arise from `group_by()` ordering in the C locale, so the proposed plan is to switch out the current `group_by()` algorithm for the new vctrs implementation, which will begin to order character groups in the C locale unconditionally. We expect all other types to retain the same ordering, having improved performance everywhere, especially when there are many groups.
+We feel that the potential performance benefits from switching to `vec_locate_sorted_groups()` outweigh the issues that could arise from `group_by()` ordering in the C locale, so the proposed plan is to switch out the current `group_by()` algorithm for the new vctrs implementation, which will begin to order character groups in the C locale unconditionally.
+We expect all other types to retain the same ordering, having improved performance everywhere, especially when there are many groups.
 
-Documentation for both `summarise()` and `group_by()` would be updated to mention the new behavior with character vectors, and would encourage the usage of `arrange()` after `summarise()` if the returned ordering is important. A pre-release blog post would also mention this change.
+Documentation for both `summarise()` and `group_by()` would be updated to mention the new behavior with character vectors, and would encourage the usage of `arrange()` after `summarise()` if the returned ordering is important.
+A pre-release blog post would also mention this change.
 
-To ease the transition, a new *temporary* global option, `dplyr.legacy_group_by_locale`, will be added and documented inside `group_by()`. If set to `TRUE`, the old grouping algorithm will be used, which will again respect the system locale. This should be used *extremely* sparingly, and we only expect this to be used in long analysis scripts for a quick fix. In a future minor version of dplyr, this option will be deprecated and ultimately removed, so it is encouraged that code be updated with an explicit `arrange()` call after the grouped operation rather than using this option.
+To ease the transition, a new *temporary* global option, `dplyr.legacy_group_by_locale`, will be added and documented inside `group_by()`.
+If set to `TRUE`, the old grouping algorithm will be used, which will again respect the system locale.
+This should be used *extremely* sparingly, and we only expect this to be used in long analysis scripts for a quick fix.
+In a future minor version of dplyr, this option will be deprecated and ultimately removed, so it is encouraged that code be updated with an explicit `arrange()` call after the grouped operation rather than using this option.
 
 ## Implementation
 
@@ -137,7 +148,10 @@ To ease the transition, a new *temporary* global option, `dplyr.legacy_group_by_
 
 ### Code breakage
 
-It is difficult to know how much "in the wild" user code will break as a result of changing from using the system locale to the C locale in `group_by()`. Ideally, users won't be relying on row order for most of their analysis scripts, but we are empathetic to the fact that this is not always the case. Our plan is to run reverse dependency checks and help fix any package code with issues that arise from this, and to provide a pre-release blog post noting this change so that users can update their code before this version releases. Combined with the `dplyr.legacy_group_by_locale` global option, we hope that these precautions will make the transition period as painless as possible.
+It is difficult to know how much "in the wild" user code will break as a result of changing from using the system locale to the C locale in `group_by()`.
+Ideally, users won't be relying on row order for most of their analysis scripts, but we are empathetic to the fact that this is not always the case.
+Our plan is to run reverse dependency checks and help fix any package code with issues that arise from this, and to provide a pre-release blog post noting this change so that users can update their code before this version releases.
+Combined with the `dplyr.legacy_group_by_locale` global option, we hope that these precautions will make the transition period as painless as possible.
 
 ### Usage with `arrange()`
 
@@ -152,7 +166,8 @@ df %>%
 
 Prior to dplyr 1.1.0, `arrange()` and `group_by()` both used the system locale, so they always sorted in a consistent way, meaning that this was never an issue.
 
-After gathering some [feedback](https://github.com/tidyverse/tidyups/issues/21#issuecomment-917958890), it seems that arranging directly before computing a grouped summary is rather rare. Arranging *after* the summary is much more common since it:
+After gathering some [feedback](https://github.com/tidyverse/tidyups/issues/21#issuecomment-917958890), it seems that arranging directly before computing a grouped summary is rather rare.
+Arranging *after* the summary is much more common since it:
 
 -   Matches hows this is done in SQL
 
@@ -166,8 +181,14 @@ Because of the assumed rarity of the appearance of this code chunk, we are willi
 
 ### Order by first appearance
 
-We briefly considered letting `group_by()` internally compute groups ordered by first appearance. This has a number of benefits, outlined in [this issue comment](https://github.com/tidyverse/dplyr/issues/5664#issuecomment-907232443), but was ultimately determined to be too large of a change from the current behavior. This is something that we may revisit in a potential second edition of dplyr.
+We briefly considered letting `group_by()` internally compute groups ordered by first appearance.
+This has a number of benefits, outlined in [this issue comment](https://github.com/tidyverse/dplyr/issues/5664#issuecomment-907232443), but was ultimately determined to be too large of a change from the current behavior.
+This is something that we may revisit in a potential second edition of dplyr.
 
 ### Give `group_by()` a `.locale` argument
 
-In [Radix Ordering in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)`dplyr::arrange()`, a `.locale` argument was added to `arrange()` to explicitly control the locale used while sorting. An argument could be made to add a `.locale` argument to `group_by()` as well, which would allow users to change to something other than the C locale while grouping. However, because `group_by()` returns a grouped data frame that has to recompute its group information at various times, many other functions besides `group_by()` would also have to gain a `.locale` argument. Additionally, for methods like `[.grouped_df`, we would need some way to "remember" that the user originally called `group_by()` with a particular locale, so that we can recompute groups in the same way. Ultimately this was deemed too complicated for not enough benefit.
+In [Radix Ordering in](https://github.com/tidyverse/tidyups/blob/main/003-dplyr-radix-ordering.md)`dplyr::arrange()`, a `.locale` argument was added to `arrange()` to explicitly control the locale used while sorting.
+An argument could be made to add a `.locale` argument to `group_by()` as well, which would allow users to change to something other than the C locale while grouping.
+However, because `group_by()` returns a grouped data frame that has to recompute its group information at various times, many other functions besides `group_by()` would also have to gain a `.locale` argument.
+Additionally, for methods like `[.grouped_df`, we would need some way to "remember" that the user originally called `group_by()` with a particular locale, so that we can recompute groups in the same way.
+Ultimately this was deemed too complicated for not enough benefit.
