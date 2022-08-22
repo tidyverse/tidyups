@@ -85,8 +85,8 @@ bench::mark(
     ## # A tibble: 2 × 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base          1.61s    1.61s     0.622    8.34MB      0  
-    ## 2 vctrs       32.89ms  36.96ms    27.4      12.7MB     32.0
+    ## 1 base          1.33s    1.33s     0.753    8.34MB      0  
+    ## 2 vctrs       16.97ms  18.43ms    51.9      12.7MB     67.5
 
 ``` r
 # Force `vec_order_radix()` to use the American English locale, which is also
@@ -107,8 +107,8 @@ bench::mark(
     ## # A tibble: 2 × 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 base          6.25s    6.25s     0.160    3.81MB     0   
-    ## 2 vctrs      661.42ms 661.42ms     1.51    20.21MB     1.51
+    ## 1 base          6.27s    6.27s     0.159    3.81MB     0   
+    ## 2 vctrs      608.82ms 608.82ms     1.64    20.21MB     1.64
 
 ``` r
 # Generating the sort key takes most of the time
@@ -120,7 +120,7 @@ bench::mark(
     ## # A tibble: 1 × 6
     ##   expression      min   median `itr/sec` mem_alloc `gc/sec`
     ##   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl>
-    ## 1 sort_key      609ms    609ms      1.64    7.63MB        0
+    ## 1 sort_key      573ms    573ms      1.74    7.63MB        0
 
 In dplyr, we’d like to utilize `vec_order_radix()` while breaking as
 little code as possible. Switching to `vec_order_radix()` has many
@@ -162,8 +162,8 @@ amount of users, it is proposed that the data frame method for
 `arrange()` gain a new argument, `.locale`, with the following
 properties:
 
--   Defaults to `dplyr_locale()`, which typically returns the `"C"`
-    locale, but can be overriden, see below.
+-   Defaults to `NULL`, which typically returns the `"C"` locale, but
+    can be overriden to use legacy behavior, see below.
 -   If stringi is installed, allow a string locale identifier, such as
     `"fr"` for French, for explicitly adjusting the locale. If stringi
     is not installed, and the user has explicitly specified a locale
@@ -173,16 +173,17 @@ properties:
     are not critical, this is often much faster than specifying a locale
     identifier. This does not require stringi.
 
-`dplyr_locale()` would be a new exported helper function. Its purpose is
-to return a string containing the default locale to sort with. It has
-the following properties:
-
--   It defaults to returning `"C"`, for the C locale.
-
--   Alternatively, to globally override the above default behavior, the
-    global option, `dplyr.locale`, can be set to either `"C"` or a
-    string locale identifier. Setting this to anything except `"C"`
-    would require stringi.
+We understand that a small subset of users will need time to switch over
+to the new behavior. These users can set the global option,
+`dplyr.legacy_locale`, to `TRUE` to retain the current behavior that
+utilizes the system locale. This is intended to be a temporary option,
+and will be removed in a later version of dplyr. Setting this option is
+only applicable when `.locale = NULL`. If it is set to any other value,
+then `.locale` overrides the global option value. Note that this is the
+same global option that is utilized in [Tidyup 006: Ordering of
+`dplyr::group_by()`](https://github.com/tidyverse/tidyups/blob/main/006-dplyr-group-by-ordering.md)
+meaning that setting it will also revert `group_by()` to its legacy
+behavior.
 
 C has been chosen as the default because it is the most reproducible
 option. The C locale is available in all versions of R and across all
@@ -193,25 +194,6 @@ C locale is also fairly close to the American English locale
 (i.e. `"en"`), with the main difference being how case-sensitivity is
 treated, but this rarely makes a practical difference in a data
 analysis.
-
-The global option `dplyr.locale` has been provided as an “escape hatch”
-that should be used sparingly, as it has the potential to reduce
-reproducibility across R sessions. It has two main uses:
-
--   Quickly adapting an existing script to the new behavior of
-    `arrange()` by overriding the locale at the top of the script to
-    switch back to the previous behavior. In the long term, we suggest
-    explicitly supplying `.locale` in all affected calls to `arrange()`
-    instead.
-
--   Locally overriding the locale when `arrange()` is called from within
-    a function that you don’t control. In this case, we recommend using
-    `rlang::with_options()` to limit the scope in which the locale is
-    overriden.
-
-Feedback has indicated that while a global option can decrease
-reproducibility between sessions, in this case the benefits of it
-outweigh the costs.
 
 On certain systems, stringi can be a difficult dependency to install.
 Because of this, this proposal recommends that stringi only be
@@ -337,9 +319,9 @@ Spanish users that have `LC_COLLATE` set to Spanish may be surprised
 that `arrange()` would now be placing this character in the “wrong
 order” even though they have set that global option. The fix would be to
 either set `.locale = "es"` in their calls to `arrange()`, or to set
-`options(dplyr.locale = "es")` to override this default globally. We
-expect this issue to affect a small number of users, due to the sheer
-magnitude of users that use English as their system locale.
+`options(dplyr.legacy_locale = TRUE)` to revert back to the legacy
+behavior. We expect this issue to affect a small number of users, due to
+the sheer magnitude of users that use English as their system locale.
 
 ### arrange_at/if/all()
 
@@ -390,14 +372,41 @@ installed it was guaranteed that the locale was always American English
 unless specified otherwise through `.locale`. However, in the tidyverse
 meeting on 2021-06-14 it was determined that not including a way to
 globally override this default was too aggressive of a change for
-non-English Latin script users. With a large script containing multiple
-calls to `arrange()`, each call would have to be updated. Additionally,
-if a function from a package that a user didn’t control called
-`arrange()` internally, then without a global option they would have no
-way to adjust the locale until that package author exposed the new
-`.locale` argument. Ultimately, in this case the benefits of the global
-option outweigh the potential reproducibility issues that might arise
-from it.
+non-English Latin script users. The solution here is to at least provide
+a way to fall back to legacy behavior temporarily if users need more
+time to fully update their scripts to the new behavior. We feel that,
+for the most part, locale is not a particularly important part of
+arranging data frames until the final stages of your process, i.e. right
+before producing some human readable output like a table, so there
+should be relatively few places where you need to update `arrange()`
+calls.
+
+### `dplyr.locale` global option
+
+A previous version of this proposal contained a `dplyr.locale` global
+option that would allow users to globally override the locale to one of
+the stringi locale identifiers. This would be a way for them to quickly
+adapt their scripts without having to go through and update all of the
+`arrange()` calls. It also was meant to provide an escape hatch for
+situations when `arrange()` was being called from a function you don’t
+control. We found that these arguments were not strong enough to retain
+this global option for a few reasons:
+
+-   There should be relatively few places where you need to update your
+    calls to `arrange()`.
+
+-   For places where `arrange()` is called but you can’t control it, you
+    can generally just `arrange()` the output of that function a second
+    time to your liking.
+
+-   This global option would not be respected by `group_by()`, even
+    though `dplyr.legacy_locale` would be, which seems inconsistent.
+
+-   This global option actually reduces reproducibility. One user might
+    set this global option in their `.Rprofile`, pass a script to a
+    co-worker, and then be surprised when the co-worker doesn’t get
+    exactly the same results. This goes directly against one of the core
+    goals of this tidyup.
 
 ### Defaulting to the American English locale if stringi was installed
 
