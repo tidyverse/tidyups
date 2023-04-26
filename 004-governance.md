@@ -82,6 +82,8 @@ only requirements are to follow the [code of
 conduct](https://github.com/tidyverse/ggplot2/blob/master/CODE_OF_CONDUCT.md)
 and [contributing
 guidelines](https://github.com/tidyverse/ggplot2/blob/master/CONTRIBUTING.md).
+Our [code review principles](https://code-review.tidyverse.org/) provide
+advice on best practices for contributing to our packages.
 
 Packages don’t maintain an explicit list of contributors but acknowledge
 them in blog posts, using data from GitHub aggregated by
