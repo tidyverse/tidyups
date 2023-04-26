@@ -4,8 +4,8 @@ output: github_document
 
 # Tidyup 4: governance model
 
-**Champion**: Hadley Wickham  
-**Co-champion**: Tracy Teal  
+**Champion**: Hadley Wickham\
+**Co-champion**: Tracy Teal\
 **Status**: Accepted
 
 ## Abstract
@@ -76,7 +76,7 @@ They:
 
 Authors are expected to follow our standard processes, such as:
 
--   **Welcoming and inclusive**: Kindness and gratitude are core values of the tidyverse and we strive to create an [inclusive atmosphere](https://github.com/tidyverse/tidyverse.org/blob/master/CODE_OF_CONDUCT.md) in our GitHub interactions. 
+-   **Welcoming and inclusive**: Kindness and gratitude are core values of the tidyverse and we strive to create an [inclusive atmosphere](https://github.com/tidyverse/tidyverse.org/blob/master/CODE_OF_CONDUCT.md) in our GitHub interactions.
     As an author, you'll be listed as a "member" of the tidyverse across all repos, so also please bear in mind your special status in other repos.
 
 -   **Code contribution**: code is usually contributed via PR, even for authors who could push directly.
@@ -123,7 +123,7 @@ A maintainer has two special powers:
 
 The maintainers of most of RStudio's open source repositories are RStudio employees.
 This is not a requirement but a recognition of the tension between making development open to all and ensuring that users can trust that a package will be maintained in the long term (i.e. 10+ years), which typically requires the maintainer be explicitly remunerated for their work.
-Where the maintainer is not an employee of RStudio, we ask for the "right of first refusal" — if the maintainer wants to stop maintaining the package (for whatever reason) they first offer it back to RStudio.
+Where the maintainer is not an employee of RStudio, we ask for the "right of first refusal" --- if the maintainer wants to stop maintaining the package (for whatever reason) they first offer it back to RStudio.
 In the future, we hope to find other ways of financial supporting maintainers apart from full-time employment.
 
 ### Process

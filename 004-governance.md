@@ -56,9 +56,9 @@ Users are encouraged to participate in the life of the project and the
 community as much as possible. Common user activities include (but are
 not limited to):
 
--   Evangelising about the project.
--   Asking and answering questions on community forums.
--   Providing moral support (a “thank you” goes a long way).
+- Evangelising about the project.
+- Asking and answering questions on community forums.
+- Providing moral support (a “thank you” goes a long way).
 
 There is no formal relationship between the project and the users, but
 we include them here as they’re the largest group and are the pool from
@@ -71,10 +71,10 @@ often find themselves becoming more and more involved. Such users may
 then go on to become **contributors** by interacting with the project on
 GitHub. Contributors:
 
--   Report bugs and suggest improvements by creating new issues.
--   Improve existing issues by answering questions, creating reprexes,
-    or providing feedback on proposed changes.
--   Contribute code or documentation via pull requests.
+- Report bugs and suggest improvements by creating new issues.
+- Improve existing issues by answering questions, creating reprexes, or
+  providing feedback on proposed changes.
+- Contribute code or documentation via pull requests.
 
 Anyone can become a contributor: there is no expectation of commitment
 to the project, no required set of skills, and no selection process. The
@@ -97,54 +97,54 @@ code, and reviewing pull requests.
 
 An author possesses three special powers. They:
 
--   Have **write** access on GitHub so they can label issues, close
-    issues, request PR reviews, and merge PRs.
+- Have **write** access on GitHub so they can label issues, close
+  issues, request PR reviews, and merge PRs.
 
--   Are listed in `Authors@R` so they are listed on the package website
-    and included in the package citation.
+- Are listed in `Authors@R` so they are listed on the package website
+  and included in the package citation.
 
--   Are a member of the “authors” team of the tidyverse organisation, so
-    they are publicly acknowledged and can easily be cc’d in
-    tidyverse-wide discussions.
+- Are a member of the “authors” team of the tidyverse organisation, so
+  they are publicly acknowledged and can easily be cc’d in
+  tidyverse-wide discussions.
 
 Authors are expected to follow our standard processes, such as:
 
--   **Welcoming and inclusive**: Kindness and gratitude are core values
-    of the tidyverse and we strive to create an [inclusive
-    atmosphere](https://github.com/tidyverse/tidyverse.org/blob/master/CODE_OF_CONDUCT.md)
-    in our GitHub interactions. As an author, you’ll be listed as a
-    “member” of the tidyverse across all repos, so also please bear in
-    mind your special status in other repos.
+- **Welcoming and inclusive**: Kindness and gratitude are core values of
+  the tidyverse and we strive to create an [inclusive
+  atmosphere](https://github.com/tidyverse/tidyverse.org/blob/master/CODE_OF_CONDUCT.md)
+  in our GitHub interactions. As an author, you’ll be listed as a
+  “member” of the tidyverse across all repos, so also please bear in
+  mind your special status in other repos.
 
--   **Code contribution**: code is usually contributed via PR, even for
-    authors who could push directly.
+- **Code contribution**: code is usually contributed via PR, even for
+  authors who could push directly.
 
--   **Communication**: authors are involved in most of the interactions
-    with contributors and thus need to set a welcoming and inclusive
-    tone for the project.
+- **Communication**: authors are involved in most of the interactions
+  with contributors and thus need to set a welcoming and inclusive tone
+  for the project.
 
--   **PR review**: all pull requests should be reviewed by at least one
-    other author. In general, there is no expectation that PRs contain
-    clean commit histories, but it’s appreciated where possible. Once a
-    reviewer has marked a PR as approved, the original author finishes
-    any remaining tasks and then merges it.
+- **PR review**: all pull requests should be reviewed by at least one
+  other author. In general, there is no expectation that PRs contain
+  clean commit histories, but it’s appreciated where possible. Once a
+  reviewer has marked a PR as approved, the original author finishes any
+  remaining tasks and then merges it.
 
--   **Backward compatibility**: any backward incompatible changes
-    (i.e. changes that cause reverse dependencies to fail `R CMD check`
-    or are likely to cause problems in user code) must be approved by
-    the maintainer. Significant backward incompatible changes need to be
-    accompanied with a plan for how they will be communicated to the
-    community.
+- **Backward compatibility**: any backward incompatible changes
+  (i.e. changes that cause reverse dependencies to fail `R CMD check` or
+  are likely to cause problems in user code) must be approved by the
+  maintainer. Significant backward incompatible changes need to be
+  accompanied with a plan for how they will be communicated to the
+  community.
 
--   **CRAN releases**: package releases are made on an as-needed basis,
-    and increment either the major, minor, or patch version depending on
-    the scope of the release. The process itself is defined by
-    `usethis::use_release_issue()`.
+- **CRAN releases**: package releases are made on an as-needed basis,
+  and increment either the major, minor, or patch version depending on
+  the scope of the release. The process itself is defined by
+  `usethis::use_release_issue()`.
 
--   **Decision making:** when a package has multiple authors, where
-    possible, decisions are made using rough consensus amongst the
-    authors. If consensus is hard to reach or taking too long, the
-    maintainer will make a decision.
+- **Decision making:** when a package has multiple authors, where
+  possible, decisions are made using rough consensus amongst the
+  authors. If consensus is hard to reach or taking too long, the
+  maintainer will make a decision.
 
 (We expect to flesh these processes out in the coming months.)
 
@@ -157,23 +157,22 @@ contributions, and has acted in accordance with the code of conduct.
 A maintainer is the author with primary responsibility for the package.
 As well as the responsibilities of an author, they also:
 
--   Set and clearly communicates the strategic objectives of the
-    package.
--   Oversee CRAN releases.
--   On-board new authors.
--   Have the final say on important decisions.
--   De-escalate conflict amongst authors and/or users.
--   Enforce the code of conduct.
--   Recruit their replacement when they want to retire from the project.
+- Set and clearly communicates the strategic objectives of the package.
+- Oversee CRAN releases.
+- On-board new authors.
+- Have the final say on important decisions.
+- De-escalate conflict amongst authors and/or users.
+- Enforce the code of conduct.
+- Recruit their replacement when they want to retire from the project.
 
 A maintainer has two special powers:
 
--   They have **admin** access on Github, allowing them to add new
-    authors when needed.
+- They have **admin** access on Github, allowing them to add new authors
+  when needed.
 
--   In their `Authors@R` listing they have an email address and the
-    “cre” role. “cre” is short for creator and while a maintainer often
-    isn’t the creator, CRAN mandates the use of this role.
+- In their `Authors@R` listing they have an email address and the “cre”
+  role. “cre” is short for creator and while a maintainer often isn’t
+  the creator, CRAN mandates the use of this role.
 
 The maintainers of most of RStudio’s open source repositories are
 RStudio employees. This is not a requirement but a recognition of the
@@ -211,11 +210,11 @@ The maintainer then sends the following email to the proposed author:
 >
 > If you accept please respond to this email then prepare a PR that:
 >
-> -   Adds your info to `Authors@R`.
-> -   Tweaks `_pkgdown.yml` if you want to link your name to your
->     website on the package website.
-> -   Advertises the change in NEWS.md.
-> -   Re-builds the documentation to get updated package docs.
+> - Adds your info to `Authors@R`.
+> - Tweaks `_pkgdown.yml` if you want to link your name to your website
+>   on the package website.
+> - Advertises the change in NEWS.md.
+> - Re-builds the documentation to get updated package docs.
 >
 > I’ll then give you write access and approve the PR, then you can
 > squash-merge it, which will be our PR workflow going forward. (You’ll
@@ -227,16 +226,16 @@ The maintainer then sends the following email to the proposed author:
 
 Once the author responds:
 
--   Add them as member of the GitHub tidyverse authors team.
+- Add them as member of the GitHub tidyverse authors team.
 
--   Give them write access to the specific repository.
+- Give them write access to the specific repository.
 
--   If this is the first non-RStudio author, strongly consider
-    protecting the main branch and requiring one review. This helps
-    newer authors feel confident there’s no way for them to accidentally
-    mess up the repo.
+- If this is the first non-RStudio author, strongly consider protecting
+  the main branch and requiring one review. This helps newer authors
+  feel confident there’s no way for them to accidentally mess up the
+  repo.
 
--   Send a celebration tweet.
+- Send a celebration tweet.
 
 #### Change maintainer
 
@@ -244,32 +243,32 @@ We do not yet have a process for selecting a new maintainer when the
 existing maintainer retires, but the following mechanical things need to
 happen:
 
--   Give new maintainer admin access.
+- Give new maintainer admin access.
 
--   Remove admin access from old maintainer.
+- Remove admin access from old maintainer.
 
--   Remove “cre” role and email address from old maintainer, and add
-    role and email address for new maintainer.
+- Remove “cre” role and email address from old maintainer, and add role
+  and email address for new maintainer.
 
--   Submit patch release to CRAN to confirm maintainer change.
+- Submit patch release to CRAN to confirm maintainer change.
 
--   Add bullet to NEWS.
+- Add bullet to NEWS.
 
 ## Open issues
 
--   Do we need a brief write up of the tidyverse teams?
+- Do we need a brief write up of the tidyverse teams?
 
--   What steps do we need to take to align existing repos with the new
-    policy? Does this replace the ggplot2 governance model?
+- What steps do we need to take to align existing repos with the new
+  policy? Does this replace the ggplot2 governance model?
 
--   How do we share with the community, new authors etc?
+- How do we share with the community, new authors etc?
 
 ## Lingering concerns
 
--   Use of team discussions is a new communication mechanisms. Is this
-    going to cause problems?
+- Use of team discussions is a new communication mechanisms. Is this
+  going to cause problems?
 
--   We are not currently considering a more open model where as soon as
-    you get your first PR merged you’re given write access
-    (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team)).
-    Should we be?
+- We are not currently considering a more open model where as soon as
+  you get your first PR merged you’re given write access
+  (e.g. [trio](https://trio.readthedocs.io/en/latest/contributing.html#joining-the-team)).
+  Should we be?
