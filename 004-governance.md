@@ -82,6 +82,8 @@ only requirements are to follow the [code of
 conduct](https://github.com/tidyverse/ggplot2/blob/master/CODE_OF_CONDUCT.md)
 and [contributing
 guidelines](https://github.com/tidyverse/ggplot2/blob/master/CONTRIBUTING.md).
+Our [code review principles](https://code-review.tidyverse.org/) provide
+advice on best practices for contributing to our packages.
 
 Packages don’t maintain an explicit list of contributors but acknowledge
 them in blog posts, using data from GitHub aggregated by
@@ -116,8 +118,9 @@ Authors are expected to follow our standard processes, such as:
   “member” of the tidyverse across all repos, so also please bear in
   mind your special status in other repos.
 
-- **Code contribution**: code is usually contributed via PR, even for
-  authors who could push directly.
+- **Code contribution**: code is usually contributed via
+  [PR](https://code-review.tidyverse.org/author/submitting.html), even
+  for authors who could push directly.
 
 - **Communication**: authors are involved in most of the interactions
   with contributors and thus need to set a welcoming and inclusive tone
@@ -126,8 +129,9 @@ Authors are expected to follow our standard processes, such as:
 - **PR review**: all pull requests should be reviewed by at least one
   other author. In general, there is no expectation that PRs contain
   clean commit histories, but it’s appreciated where possible. Once a
-  reviewer has marked a PR as approved, the original author finishes any
-  remaining tasks and then merges it.
+  reviewer has [marked a PR as
+  approved](https://code-review.tidyverse.org/reviewer/comments.html#sec-approve-with-comments),
+  the original author finishes any remaining tasks and then merges it.
 
 - **Backward compatibility**: any backward incompatible changes
   (i.e. changes that cause reverse dependencies to fail `R CMD check` or
