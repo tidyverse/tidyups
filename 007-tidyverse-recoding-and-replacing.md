@@ -126,8 +126,8 @@ vec_recode_values(
   to,
   default = NULL,
   unmatched = c("default", "error"),
-  multiple_from = FALSE,
-  multiple_to = FALSE,
+  from_as_list_of_vectors = FALSE,
+  to_as_list_of_vectors = FALSE,
   x_arg = "x",
   from_arg = "from",
   to_arg = "to",
@@ -154,8 +154,8 @@ vec_replace_values(
   ...,
   from,
   to,
-  multiple_from = FALSE,
-  multiple_to = FALSE,
+  from_as_list_of_vectors = FALSE,
+  to_as_list_of_vectors = FALSE,
   x_arg = "x",
   from_arg = "from",
   to_arg = "to",
@@ -1302,9 +1302,9 @@ captured every possibility we could think of.
 <col style="width: 9%" />
 <col style="width: 6%" />
 <col style="width: 6%" />
-<col style="width: 5%" />
-<col style="width: 42%" />
-<col style="width: 26%" />
+<col style="width: 3%" />
+<col style="width: 43%" />
+<col style="width: 27%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -1417,7 +1417,7 @@ captured every possibility we could think of.
 <td>N</td>
 <td><p>recode_values(x, from = c(1, 2), to = list(column, column2))</p>
 <p>vctrs API:</p>
-<p>vec_recode_values(x, from, to, multiple_to = TRUE)</p></td>
+<p>vec_recode_values(x, from, to, to_as_list_of_vectors = TRUE)</p></td>
 <td></td>
 </tr>
 <tr class="odd">
@@ -1455,7 +1455,8 @@ captured every possibility we could think of.
 <td>N</td>
 <td><p>replace_values(x, from = c(1, 2), to = list(column, column2))</p>
 <p>vctrs API:</p>
-<p>vec_replace_values(x, from, to, multiple_to = TRUE)</p></td>
+<p>vec_replace_values(x, from, to, to_as_list_of_vectors =
+TRUE)</p></td>
 <td></td>
 </tr>
 </tbody>

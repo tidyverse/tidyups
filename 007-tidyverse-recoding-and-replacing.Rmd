@@ -117,8 +117,8 @@ vec_recode_values(
   to,
   default = NULL,
   unmatched = c("default", "error"),
-  multiple_from = FALSE,
-  multiple_to = FALSE,
+  from_as_list_of_vectors = FALSE,
+  to_as_list_of_vectors = FALSE,
   x_arg = "x",
   from_arg = "from",
   to_arg = "to",
@@ -145,8 +145,8 @@ vec_replace_values(
   ...,
   from,
   to,
-  multiple_from = FALSE,
-  multiple_to = FALSE,
+  from_as_list_of_vectors = FALSE,
+  to_as_list_of_vectors = FALSE,
   x_arg = "x",
   from_arg = "from",
   to_arg = "to",
@@ -900,7 +900,7 @@ While working on this tidyup, we developed the following table of possible ways 
 |              |         |         |        |                                                                |                                        |
 |              |         |         |        | vctrs API:                                                     |                                        |
 |              |         |         |        |                                                                |                                        |
-|              |         |         |        | vec_recode_values(x, from, to, multiple_to = TRUE)             |                                        |
+|              |         |         |        | vec_recode_values(x, from, to, to_as_list_of_vectors = TRUE)   |                                        |
 +--------------+---------+---------+--------+----------------------------------------------------------------+----------------------------------------+
 | Programmatic | Replace | if/else | 1      | vec_replace_when(list(case, case2), list(0, NA))               |                                        |
 +--------------+---------+---------+--------+----------------------------------------------------------------+----------------------------------------+
@@ -920,5 +920,5 @@ While working on this tidyup, we developed the following table of possible ways 
 |              |         |         |        |                                                                |                                        |
 |              |         |         |        | vctrs API:                                                     |                                        |
 |              |         |         |        |                                                                |                                        |
-|              |         |         |        | vec_replace_values(x, from, to, multiple_to = TRUE)            |                                        |
+|              |         |         |        | vec_replace_values(x, from, to, to_as_list_of_vectors = TRUE)  |                                        |
 +--------------+---------+---------+--------+----------------------------------------------------------------+----------------------------------------+
