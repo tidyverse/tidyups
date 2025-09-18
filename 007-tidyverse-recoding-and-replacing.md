@@ -951,6 +951,78 @@ typeof(replace_values(x, 1 ~ 0))
 
     ## [1] "integer"
 
+This is particularly useful when partially recoding factors to existing
+levels.
+
+``` r
+pets <- tibble(
+  name = c("Max", "Bella", "Chuck", "Luna", "Cooper"),
+  # Note the so-far unused "puppy" level:
+  type = factor(
+    c("dog", "dog", "cat", "dog", "cat"),
+    levels = c("dog", "cat", "puppy")
+  ),
+  age = c(1, 3, 5, 2, 4)
+)
+
+# Recode some values to `"puppy"` using a character on the RHS
+pets |>
+  mutate(
+    type = type |>
+      replace_when(type == "dog" & age <= 2 ~ "puppy")
+  )
+```
+
+    ## # A tibble: 5 × 3
+    ##   name   type    age
+    ##   <chr>  <fct> <dbl>
+    ## 1 Max    puppy     1
+    ## 2 Bella  dog       3
+    ## 3 Chuck  cat       5
+    ## 4 Luna   puppy     2
+    ## 5 Cooper cat       4
+
+``` r
+# Note the type safety! Only existing levels can be used here.
+pets |>
+  mutate(
+    type = type |>
+      replace_when(type == "dog" & age <= 2 ~ "pup")
+  )
+```
+
+    ## Error in `mutate()`:
+    ## ℹ In argument: `type = replace_when(type, type == "dog" & age <= 2 ~
+    ##   "pup")`.
+    ## Caused by error in `replace_when()`:
+    ## ! Can't convert from `..1 (right)` <character> to <factor<00b23>> due to loss of generality.
+    ## • Locations: 1, 2, 3, 4, 5
+
+The corresponding call to `case_when()` is much less intuitive due to
+the fact that the common type of character and factor is character,
+which means that the output of this `case_when()` call would be a
+character without the `.ptype` argument to force it to be a factor.
+
+``` r
+pets |>
+  mutate(
+    type = case_when(
+      type == "dog" & age <= 2 ~ "puppy",
+      .default = type,
+      .ptype = type
+    )
+  )
+```
+
+    ## # A tibble: 5 × 3
+    ##   name   type    age
+    ##   <chr>  <fct> <dbl>
+    ## 1 Max    puppy     1
+    ## 2 Bella  dog       3
+    ## 3 Chuck  cat       5
+    ## 4 Luna   puppy     2
+    ## 5 Cooper cat       4
+
 #### Retaining names
 
 Another subtle difference between *recoding* and *replacing* is where
