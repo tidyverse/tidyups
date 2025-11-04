@@ -370,6 +370,97 @@ retain), so the default behavior of treating `NA` like `FALSE` works
 *with you* rather than *against you*. It’s also much easier to
 understand when you look back on it a year from now!
 
+#### With `%in%`
+
+`%in%` has historically been a common way to work around `NA` related
+issues because it handles the `NA`s for you by performing an “exact
+match” that only returns `TRUE` or `FALSE`, unlike `==` which propagates
+missing values.
+
+``` r
+patients$deceased == TRUE
+```
+
+    ## [1] FALSE  TRUE    NA  TRUE    NA FALSE  TRUE
+
+``` r
+patients$deceased %in% TRUE
+```
+
+    ## [1] FALSE  TRUE FALSE  TRUE FALSE FALSE  TRUE
+
+Swapping `==` for `%in%` can sometimes make your `filter()` call clearer
+than using `is.na()`, but `exclude()` is still more readable.
+
+> Drop rows with a `deceased` patient.
+
+``` r
+# Wrong, want to keep `NA`s where `deceased` status is unknown
+patients |>
+  filter(!deceased)
+```
+
+    ## # A tibble: 2 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Derek FALSE       NA
+
+These all work, with `exclude()` being a clear winner:
+
+``` r
+patients |>
+  filter(!deceased | is.na(deceased))
+```
+
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Max   NA        2010
+    ## 4 Derek FALSE       NA
+
+``` r
+patients |>
+  filter(!(deceased %in% TRUE))
+```
+
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Max   NA        2010
+    ## 4 Derek FALSE       NA
+
+``` r
+# Or
+patients |>
+  filter(deceased %in% c(FALSE, NA))
+```
+
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Max   NA        2010
+    ## 4 Derek FALSE       NA
+
+``` r
+patients |>
+  exclude(deceased)
+```
+
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Max   NA        2010
+    ## 4 Derek FALSE       NA
+
 ### Excluding rows using `this | that`
 
 Let’s look at another example. Our goal is:
