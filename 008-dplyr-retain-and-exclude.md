@@ -812,7 +812,7 @@ much easier to teach than `filter()` because:
 
 ## Additional considerations
 
-### dbplyr
+### SQL and dbplyr
 
 There is a strong connection between `dplyr::filter()` and SQL’s
 `FILTER` clause. Moving to `retain()` and `exclude()` would weaken this
