@@ -853,3 +853,57 @@ Related issues and examples:
 - <https://github.com/tidyverse/dplyr/issues/6560>
 
 - <https://github.com/tidyverse/dplyr/issues/6891>
+
+### Tables
+
+Tables like these help us ensure there aren’t any holes in our designs.
+
+Intent vs Combine
+
+<table style="width:99%;">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 15%" />
+<col style="width: 67%" />
+</colgroup>
+<thead>
+<tr>
+<th>Intent</th>
+<th>Combine</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retain</td>
+<td>And</td>
+<td><code>retain(a, b, c)</code></td>
+</tr>
+<tr>
+<td>Retain</td>
+<td>Or</td>
+<td><code>retain(when_any(a, b, c))</code></td>
+</tr>
+<tr>
+<td>Exclude</td>
+<td>And</td>
+<td><code>exclude(a, b, c)</code></td>
+</tr>
+<tr>
+<td>Exclude</td>
+<td>Or</td>
+<td><p><code>exclude(when_any(a, b, c))</code></p>
+<p>In practice:
+<code>exclude(a) |&gt; exclude(b) |&gt; exclude(c)</code></p></td>
+</tr>
+</tbody>
+</table>
+
+Intent vs Missings
+
+| Intent | Missings | Outcome | Usefulness |
+|----|----|----|----|
+| Retain | Treat as `FALSE` | Retain rows where you *know* the conditions are `TRUE` | Very. Existing `filter()` behavior. |
+| Exclude | Treat as `FALSE` | Exclude rows where you *know* the conditions are `TRUE` | Very. Simplifies “treat `filter()` as an exclude” cases. |
+| Retain | Treat as `TRUE` | Retain rows where conditions are `TRUE` or `NA` | Unconvinced. Often this is an `exclude()` in disguise. |
+| Exclude | Treat as `TRUE` | Exclude rows where conditions are `TRUE` or `NA` | Unconvinced. |

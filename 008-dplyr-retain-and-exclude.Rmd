@@ -547,3 +547,37 @@ Related issues and examples:
 -   <https://github.com/tidyverse/dplyr/issues/6560>
 
 -   <https://github.com/tidyverse/dplyr/issues/6891>
+
+### Tables
+
+Tables like these help us ensure there aren't any holes in our designs.
+
+Intent vs Combine
+
++------------+------------+-------------------------------------------------------+
+| Intent     | Combine    | Solution                                              |
++============+============+=======================================================+
+| Retain     | And        | `retain(a, b, c)`                                     |
++------------+------------+-------------------------------------------------------+
+| Retain     | Or         | `retain(when_any(a, b, c))`                           |
++------------+------------+-------------------------------------------------------+
+| Exclude    | And        | `exclude(a, b, c)`                                    |
++------------+------------+-------------------------------------------------------+
+| Exclude    | Or         | `exclude(when_any(a, b, c))`                          |
+|            |            |                                                       |
+|            |            | In practice: `exclude(a) |> exclude(b) |> exclude(c)` |
++------------+------------+-------------------------------------------------------+
+
+Intent vs Missings
+
++-----------+------------------+---------------------------------------------------------+----------------------------------------------------------+
+| Intent    | Missings         | Outcome                                                 | Usefulness                                               |
++===========+==================+=========================================================+==========================================================+
+| Retain    | Treat as `FALSE` | Retain rows where you *know* the conditions are `TRUE`  | Very. Existing `filter()` behavior.                      |
++-----------+------------------+---------------------------------------------------------+----------------------------------------------------------+
+| Exclude   | Treat as `FALSE` | Exclude rows where you *know* the conditions are `TRUE` | Very. Simplifies "treat `filter()` as an exclude" cases. |
++-----------+------------------+---------------------------------------------------------+----------------------------------------------------------+
+| Retain    | Treat as `TRUE`  | Retain rows where conditions are `TRUE` or `NA`         | Unconvinced. Often this is an `exclude()` in disguise.   |
++-----------+------------------+---------------------------------------------------------+----------------------------------------------------------+
+| Exclude   | Treat as `TRUE`  | Exclude rows where conditions are `TRUE` or `NA`        | Unconvinced.                                             |
++-----------+------------------+---------------------------------------------------------+----------------------------------------------------------+
