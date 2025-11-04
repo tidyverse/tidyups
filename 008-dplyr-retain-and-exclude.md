@@ -163,7 +163,7 @@ Take a look at this example. Our goal is:
 
 ``` r
 patients <- tibble(
-  deceased = c(0, 1, 0, 1, 1, 0),
+  deceased = c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE),
   date = c(2005, 2010, 2013, 2020, 2010, 2000)
 )
 
@@ -173,11 +173,11 @@ patients |>
 
     ## # A tibble: 4 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        0  2013
-    ## 3        1  2020
-    ## 4        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 FALSE     2013
+    ## 3 TRUE      2020
+    ## 4 FALSE     2000
 
 Compare that with this proposed usage of `exclude()`:
 
@@ -188,11 +188,11 @@ patients |>
 
     ## # A tibble: 4 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        0  2013
-    ## 3        1  2020
-    ## 4        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 FALSE     2013
+    ## 3 TRUE      2020
+    ## 4 FALSE     2000
 
 Note how we drop:
 
@@ -218,7 +218,7 @@ Let’s introduce some missing values to `patients`.
 
 ``` r
 patients <- tibble(
-  deceased = c(0, 1, NA, 1, NA, 0, 1),
+  deceased = c(FALSE, TRUE, NA, TRUE, NA, FALSE, TRUE),
   date = c(2005, 2010, NA, 2020, 2010, NA, NA)
 )
 
@@ -227,14 +227,14 @@ patients
 
     ## # A tibble: 7 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2010
-    ## 3       NA    NA
-    ## 4        1  2020
-    ## 5       NA  2010
-    ## 6        0    NA
-    ## 7        1    NA
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2010
+    ## 3 NA          NA
+    ## 4 TRUE      2020
+    ## 5 NA        2010
+    ## 6 FALSE       NA
+    ## 7 TRUE        NA
 
 Our goal before was:
 
@@ -251,10 +251,10 @@ patients |>
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0    NA
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE       NA
 
 This drops 4 rows from our dataset! Let’s see which ones:
 
@@ -266,14 +266,14 @@ patients |>
 
     ## # A tibble: 7 × 4
     ##   deceased  date to_retain what_filter_sees
-    ##      <dbl> <dbl> <lgl>     <lgl>           
-    ## 1        0  2005 TRUE      TRUE            
-    ## 2        1  2010 FALSE     FALSE           
-    ## 3       NA    NA NA        FALSE           
-    ## 4        1  2020 TRUE      TRUE            
-    ## 5       NA  2010 NA        FALSE           
-    ## 6        0    NA TRUE      TRUE            
-    ## 7        1    NA NA        FALSE
+    ##   <lgl>    <dbl> <lgl>     <lgl>           
+    ## 1 FALSE     2005 TRUE      TRUE            
+    ## 2 TRUE      2010 FALSE     FALSE           
+    ## 3 NA          NA NA        FALSE           
+    ## 4 TRUE      2020 TRUE      TRUE            
+    ## 5 NA        2010 NA        FALSE           
+    ## 6 FALSE       NA TRUE      TRUE            
+    ## 7 TRUE        NA NA        FALSE
 
 Because `filter()` treats `NA` as `FALSE`, we unexpectedly drop *more
 than we expected*.
@@ -300,13 +300,13 @@ patients |>
 
     ## # A tibble: 6 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2       NA    NA
-    ## 3        1  2020
-    ## 4       NA  2010
-    ## 5        0    NA
-    ## 6        1    NA
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 NA          NA
+    ## 3 TRUE      2020
+    ## 4 NA        2010
+    ## 5 FALSE       NA
+    ## 6 TRUE        NA
 
 That’s horrible! Advanced users of dplyr might think about this for a
 moment and rewrite as:
@@ -318,13 +318,13 @@ patients |>
 
     ## # A tibble: 6 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2       NA    NA
-    ## 3        1  2020
-    ## 4       NA  2010
-    ## 5        0    NA
-    ## 6        1    NA
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 NA          NA
+    ## 3 TRUE      2020
+    ## 4 NA        2010
+    ## 5 FALSE       NA
+    ## 6 TRUE        NA
 
 But that’s still pretty confusing, took a lot of time to get there, and
 you’ll likely look back on this in a year wondering what you were doing
@@ -337,13 +337,13 @@ patients |>
 
     ## # A tibble: 6 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2       NA    NA
-    ## 3        1  2020
-    ## 4       NA  2010
-    ## 5        0    NA
-    ## 6        1    NA
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 NA          NA
+    ## 3 TRUE      2020
+    ## 4 NA        2010
+    ## 5 FALSE       NA
+    ## 6 TRUE        NA
 
 Just like with `filter()` or `retain()`, `exclude()` treats `NA` values
 as `FALSE`. The difference is that `exclude()` expects that you are
@@ -532,7 +532,7 @@ dplyr didn’t have an “exclude rows” solution, years ago we added
 
 ``` r
 patients <- tibble(
-  deceased = c(0, NA, 0, 1, NA, 0),
+  deceased = c(FALSE, NA, FALSE, TRUE, NA, FALSE),
   date = c(2005, 2010, NA, 2020, 2010, 2000)
 )
 
@@ -541,10 +541,10 @@ patients |> tidyr::drop_na(deceased, date)
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE     2000
 
 ``` r
 # Equivalent `filter()`s
@@ -553,10 +553,10 @@ patients |> filter(!(is.na(deceased) | is.na(date)))
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE     2000
 
 ``` r
 patients |> filter(!if_any(c(deceased, date), is.na))
@@ -564,10 +564,10 @@ patients |> filter(!if_any(c(deceased, date), is.na))
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE     2000
 
 With `exclude()`, you can express this as sequential `exclude()` calls
 if you just have 2-3 columns to work with:
@@ -580,10 +580,10 @@ patients |>
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE     2000
 
 Or, if you have many columns, you can use `if_any()` like with the
 `filter()` example above, but in a more readable form:
@@ -594,10 +594,10 @@ patients |> exclude(if_any(c(deceased, date), is.na))
 
     ## # A tibble: 3 × 2
     ##   deceased  date
-    ##      <dbl> <dbl>
-    ## 1        0  2005
-    ## 2        1  2020
-    ## 3        0  2000
+    ##   <lgl>    <dbl>
+    ## 1 FALSE     2005
+    ## 2 TRUE      2020
+    ## 3 FALSE     2000
 
 ### Retaining rows using `this | that`
 

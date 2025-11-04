@@ -126,7 +126,7 @@ Our goal is:
 
 ```{r}
 patients <- tibble(
-  deceased = c(0, 1, 0, 1, 1, 0),
+  deceased = c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE),
   date = c(2005, 2010, 2013, 2020, 2010, 2000)
 )
 
@@ -163,7 +163,7 @@ Let's introduce some missing values to `patients`.
 
 ```{r}
 patients <- tibble(
-  deceased = c(0, 1, NA, 1, NA, 0, 1),
+  deceased = c(FALSE, TRUE, NA, TRUE, NA, FALSE, TRUE),
   date = c(2005, 2010, NA, 2020, 2010, NA, NA)
 )
 
@@ -337,7 +337,7 @@ The goal here is:
 
 ```{r}
 patients <- tibble(
-  deceased = c(0, NA, 0, 1, NA, 0),
+  deceased = c(FALSE, NA, FALSE, TRUE, NA, FALSE),
   date = c(2005, 2010, NA, 2020, 2010, 2000)
 )
 
