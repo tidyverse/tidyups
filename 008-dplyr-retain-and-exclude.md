@@ -163,21 +163,38 @@ Take a look at this example. Our goal is:
 
 ``` r
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek"),
   deceased = c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE),
   date = c(2005, 2010, 2013, 2020, 2010, 2000)
 )
 
+patients
+```
+
+    ## # A tibble: 6 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Mark  TRUE      2010
+    ## 3 Sarah FALSE     2013
+    ## 4 Davis TRUE      2020
+    ## 5 Max   TRUE      2010
+    ## 6 Derek FALSE     2000
+
+With `filter()`:
+
+``` r
 patients |>
   filter(!(deceased & date < 2012))
 ```
 
-    ## # A tibble: 4 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 FALSE     2013
-    ## 3 TRUE      2020
-    ## 4 FALSE     2000
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah FALSE     2013
+    ## 3 Davis TRUE      2020
+    ## 4 Derek FALSE     2000
 
 Compare that with this proposed usage of `exclude()`:
 
@@ -186,13 +203,13 @@ patients |>
   exclude(deceased, date < 2012)
 ```
 
-    ## # A tibble: 4 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 FALSE     2013
-    ## 3 TRUE      2020
-    ## 4 FALSE     2000
+    ## # A tibble: 4 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah FALSE     2013
+    ## 3 Davis TRUE      2020
+    ## 4 Derek FALSE     2000
 
 Note how we drop:
 
@@ -218,6 +235,7 @@ Let’s introduce some missing values to `patients`.
 
 ``` r
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek", "Tina"),
   deceased = c(FALSE, TRUE, NA, TRUE, NA, FALSE, TRUE),
   date = c(2005, 2010, NA, 2020, 2010, NA, NA)
 )
@@ -225,16 +243,16 @@ patients <- tibble(
 patients
 ```
 
-    ## # A tibble: 7 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2010
-    ## 3 NA          NA
-    ## 4 TRUE      2020
-    ## 5 NA        2010
-    ## 6 FALSE       NA
-    ## 7 TRUE        NA
+    ## # A tibble: 7 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Mark  TRUE      2010
+    ## 3 Sarah NA          NA
+    ## 4 Davis TRUE      2020
+    ## 5 Max   NA        2010
+    ## 6 Derek FALSE       NA
+    ## 7 Tina  TRUE        NA
 
 Our goal before was:
 
@@ -249,12 +267,12 @@ patients |>
   filter(!(deceased & date < 2012))
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE       NA
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE       NA
 
 This drops 4 rows from our dataset! Let’s see which ones:
 
@@ -264,16 +282,16 @@ patients |>
   mutate(what_filter_sees = to_retain & !is.na(to_retain))
 ```
 
-    ## # A tibble: 7 × 4
-    ##   deceased  date to_retain what_filter_sees
-    ##   <lgl>    <dbl> <lgl>     <lgl>           
-    ## 1 FALSE     2005 TRUE      TRUE            
-    ## 2 TRUE      2010 FALSE     FALSE           
-    ## 3 NA          NA NA        FALSE           
-    ## 4 TRUE      2020 TRUE      TRUE            
-    ## 5 NA        2010 NA        FALSE           
-    ## 6 FALSE       NA TRUE      TRUE            
-    ## 7 TRUE        NA NA        FALSE
+    ## # A tibble: 7 × 5
+    ##   name  deceased  date to_retain what_filter_sees
+    ##   <chr> <lgl>    <dbl> <lgl>     <lgl>           
+    ## 1 Anne  FALSE     2005 TRUE      TRUE            
+    ## 2 Mark  TRUE      2010 FALSE     FALSE           
+    ## 3 Sarah NA          NA NA        FALSE           
+    ## 4 Davis TRUE      2020 TRUE      TRUE            
+    ## 5 Max   NA        2010 NA        FALSE           
+    ## 6 Derek FALSE       NA TRUE      TRUE            
+    ## 7 Tina  TRUE        NA NA        FALSE
 
 Because `filter()` treats `NA` as `FALSE`, we unexpectedly drop *more
 than we expected*.
@@ -298,15 +316,15 @@ patients |>
   )
 ```
 
-    ## # A tibble: 6 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 NA          NA
-    ## 3 TRUE      2020
-    ## 4 NA        2010
-    ## 5 FALSE       NA
-    ## 6 TRUE        NA
+    ## # A tibble: 6 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Davis TRUE      2020
+    ## 4 Max   NA        2010
+    ## 5 Derek FALSE       NA
+    ## 6 Tina  TRUE        NA
 
 That’s horrible! Advanced users of dplyr might think about this for a
 moment and rewrite as:
@@ -316,15 +334,15 @@ patients |>
   filter(!coalesce(deceased & date < 2012, FALSE))
 ```
 
-    ## # A tibble: 6 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 NA          NA
-    ## 3 TRUE      2020
-    ## 4 NA        2010
-    ## 5 FALSE       NA
-    ## 6 TRUE        NA
+    ## # A tibble: 6 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Davis TRUE      2020
+    ## 4 Max   NA        2010
+    ## 5 Derek FALSE       NA
+    ## 6 Tina  TRUE        NA
 
 But that’s still pretty confusing, took a lot of time to get there, and
 you’ll likely look back on this in a year wondering what you were doing
@@ -335,15 +353,15 @@ patients |>
   exclude(deceased, date < 2012)
 ```
 
-    ## # A tibble: 6 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 NA          NA
-    ## 3 TRUE      2020
-    ## 4 NA        2010
-    ## 5 FALSE       NA
-    ## 6 TRUE        NA
+    ## # A tibble: 6 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Sarah NA          NA
+    ## 3 Davis TRUE      2020
+    ## 4 Max   NA        2010
+    ## 5 Derek FALSE       NA
+    ## 6 Tina  TRUE        NA
 
 Just like with `filter()` or `retain()`, `exclude()` treats `NA` values
 as `FALSE`. The difference is that `exclude()` expects that you are
@@ -532,6 +550,7 @@ dplyr didn’t have an “exclude rows” solution, years ago we added
 
 ``` r
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek"),
   deceased = c(FALSE, NA, FALSE, TRUE, NA, FALSE),
   date = c(2005, 2010, NA, 2020, 2010, 2000)
 )
@@ -539,35 +558,35 @@ patients <- tibble(
 patients |> tidyr::drop_na(deceased, date)
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE     2000
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE     2000
 
 ``` r
 # Equivalent `filter()`s
 patients |> filter(!(is.na(deceased) | is.na(date)))
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE     2000
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE     2000
 
 ``` r
 patients |> filter(!if_any(c(deceased, date), is.na))
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE     2000
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE     2000
 
 With `exclude()`, you can express this as sequential `exclude()` calls
 if you just have 2-3 columns to work with:
@@ -578,12 +597,12 @@ patients |>
   exclude(is.na(date))
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE     2000
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE     2000
 
 Or, if you have many columns, you can use `if_any()` like with the
 `filter()` example above, but in a more readable form:
@@ -592,12 +611,12 @@ Or, if you have many columns, you can use `if_any()` like with the
 patients |> exclude(if_any(c(deceased, date), is.na))
 ```
 
-    ## # A tibble: 3 × 2
-    ##   deceased  date
-    ##   <lgl>    <dbl>
-    ## 1 FALSE     2005
-    ## 2 TRUE      2020
-    ## 3 FALSE     2000
+    ## # A tibble: 3 × 3
+    ##   name  deceased  date
+    ##   <chr> <lgl>    <dbl>
+    ## 1 Anne  FALSE     2005
+    ## 2 Davis TRUE      2020
+    ## 3 Derek FALSE     2000
 
 ### Retaining rows using `this | that`
 

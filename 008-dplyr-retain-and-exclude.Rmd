@@ -126,10 +126,17 @@ Our goal is:
 
 ```{r}
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek"),
   deceased = c(FALSE, TRUE, FALSE, TRUE, TRUE, FALSE),
   date = c(2005, 2010, 2013, 2020, 2010, 2000)
 )
 
+patients
+```
+
+With `filter()`:
+
+```{r}
 patients |>
   filter(!(deceased & date < 2012))
 ```
@@ -163,6 +170,7 @@ Let's introduce some missing values to `patients`.
 
 ```{r}
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek", "Tina"),
   deceased = c(FALSE, TRUE, NA, TRUE, NA, FALSE, TRUE),
   date = c(2005, 2010, NA, 2020, 2010, NA, NA)
 )
@@ -337,6 +345,7 @@ The goal here is:
 
 ```{r}
 patients <- tibble(
+  name = c("Anne", "Mark", "Sarah", "Davis", "Max", "Derek"),
   deceased = c(FALSE, NA, FALSE, TRUE, NA, FALSE),
   date = c(2005, 2010, NA, 2020, 2010, 2000)
 )
