@@ -37,8 +37,8 @@ To address these issues, we propose two new families of dplyr verbs:
 
 ``` r
 # Data frame functions
-retain(.data, ..., .by = NULL, .missing = FALSE)
-exclude(.data, ..., .by = NULL, .missing = FALSE)
+retain(.data, ..., .by = NULL)
+exclude(.data, ..., .by = NULL)
 
 # Vector functions
 when_any(..., missing = NULL)
@@ -53,10 +53,6 @@ For `retain()` and `exclude()`:
 
     -   As we will see, having `exclude()` work in this way simplifies many cases of using `filter()` to exclude rows.
 
-    -   `.missing = TRUE` opts in to treating `NA` like `TRUE`.
-        For `retain()`, this retains missing values.
-        For `exclude()`, this excludes missing values.
-
 For `when_any()` and `when_all()`:
 
 -   These are equivalents to `pmin()` and `pmax()`, but applied to `any()` and `all()`.
@@ -69,6 +65,9 @@ For `when_any()` and `when_all()`:
 
 -   `missing = NULL` propagates `NA` through according to the typical `&` and `|` rules.
     Propagating missing values by default combines well `retain()` and `exclude()`.
+
+-   `missing = FALSE / TRUE` replace `NA` with the specified `missing` value before combining.
+    This acts as a more flexible `na_rm` style argument.
 
 -   These functions can be used anywhere, not just in `retain()` and `exclude()`.
 
@@ -514,17 +513,12 @@ data |> exclude(this) |> exclude(that)
 
 This isn't the case for `retain()` and `|`, hence the added value of `when_any()`.
 
-## TODO: An example for `.missing`?
-
-Is `.missing = TRUE` ever useful in `retain()` and `exclude()`, or was it just a red herring that is resolved by the fact that we have `exclude()` now?
-I seem to remember there are cases in Sarah's examples where `.missing = TRUE` would still be useful.
-
 ## Backwards compatibility
 
 ### `filter()`
 
 `filter()` would alias to `retain()` and would never be superseded or deprecated.
-We would be very careful to retain all existing behavior of `filter()`, but we may decide not to give it new features that `retain()` and `exclude()` would gain, like `.missing`.
+We would be very careful to retain all existing behavior of `filter()`, but we may decide not to give it new features that `retain()` and `exclude()` gain.
 
 ## How to teach
 
@@ -578,6 +572,72 @@ With alternate names:
 -   `select()`
 
 The existing verbs are all single words, and the `_rows()` suffix here throws off the overall coherence.
+
+#### `retain(.missing =)` and `exclude(.missing =)`
+
+An earlier version of this tidyup considered adding `.missing = FALSE / TRUE` to `retain()` and `exclude()`, with `FALSE` being the default to "treat an `NA` like `FALSE`".
+This was in response to *many* requests for an argument like this on the dplyr Issues page.
+After gathering more examples and feedback, we've determined:
+
+-   This argument is *highly* confusing to think about.
+
+-   The argument is a red herring.
+    You actually wanted an `exclude()` all along.
+
+Here's the theoretical motivation for `.missing = TRUE`:
+
+> *Exclude* rows where `x` and `y` are equal.
+
+```{r}
+data <- tibble(
+  x = c(1, 1, 1, 2, 2, 2, NA, NA, NA),
+  y = c(1, 2, NA, 1, 2, NA, 1, 2, NA)
+)
+
+data
+```
+
+Because dplyr didn't have an "exclude rows" style function, you'd reach for `filter()` with `!=`:
+
+```{r}
+data |> filter(x != y)
+```
+
+But then you'd get frustrated that this didn't drop *only* the rows where `x` and `y` are equal, it also dropped the `NA` rows where the result is ambiguous.
+So you'd add `is.na()` calls:
+
+```{r}
+data |> filter(x != y | is.na(x) | is.na(y))
+```
+
+At that point, people reasonably thought that a `.missing = TRUE` argument might be useful.
+This would automatically treat `NA`s resulting from `x != y` as `TRUE` rather than the default of `FALSE`.
+In other words, they wanted to write:
+
+```{r, eval = FALSE}
+data |> filter(x != y, .missing = TRUE)
+```
+
+But this is both a red herring and a fairly unintuitive bit of code to come back and read a year from now.
+
+We've determined that what we were *actually* missing was `exclude()`, because this is just:
+
+```{r}
+data |> exclude(x == y)
+```
+
+This has the benefits of being short, intuitive, and clearly aligning with the intent of the original goal.
+
+Every issue / question below is actually a request for `exclude()` in disguise:
+
+-   [`exclude(col1 == col2)`](https://github.com/tidyverse/dplyr/issues/6432)
+-   [`exclude(Species == "virginica")`](https://github.com/tidyverse/dplyr/issues/6013)
+-   [`exclude(y == "a")`](https://github.com/tidyverse/dplyr/issues/3196)
+-   [`exclude(col == "str")`](https://stackoverflow.com/questions/46378437/how-to-filter-data-without-losing-na-rows-using-dplyr)
+-   [`exclude(var1 == 1)`](https://stackoverflow.com/questions/32908589/why-does-dplyrs-filter-drop-na-values-from-a-factor-variable)
+
+In the *extremely* rare cases where you might need `missing =`, you can use `when_any()` and `when_all()` inside of `retain()` and `exclude()`.
+These propagate missings by default but have a `missing` argument for you to control this behavior.
 
 ## Appendix
 
