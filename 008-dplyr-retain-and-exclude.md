@@ -690,7 +690,7 @@ countries |>
     ## 3 CA      300
 
 We think this is a better solution than adding a
-`.combine = c("&", "|")` style argument to `retain()` itself, which
+`.when = c("all", "any")` style argument to `retain()` itself, which
 feels less readable overall:
 
 ``` r
@@ -698,13 +698,13 @@ countries |>
   retain(
     name %in% c("US", "CA") & between(score, 200, 300),
     name %in% c("PR", "RU") & between(score, 100, 200),
-    .combine = "|"
+    .when = "any"
   ))
 ```
 
 It’s also nice that `when_any()` and `when_all()` are useful outside of
-just `retain()` and `exclude()`, which we would not get with a
-`.combine` argument.
+just `retain()` and `exclude()`, which we would not get with a `.when`
+argument.
 
 #### `when_all()`?
 
