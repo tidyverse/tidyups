@@ -253,8 +253,8 @@ patients
 
 Our goal before was:
 
-> Exclude rows where the patient is deceased and the year of death was
-> before 2012.
+> *Exclude* rows where the patient is deceased *and* the year of death
+> was before 2012.
 
 In the data above, that looks to just be row 2. Let’s try the same
 `filter()` from before:
@@ -366,97 +366,6 @@ going to tell it which rows to *exclude* (rather than which rows to
 retain), so the default behavior of treating `NA` like `FALSE` works
 *with you* rather than *against you*. It’s also much easier to
 understand when you look back on it a year from now!
-
-#### With `%in%`
-
-`%in%` has historically been a common way to work around `NA` related
-issues because it handles the `NA`s for you by performing an “exact
-match” that only returns `TRUE` or `FALSE`, unlike `==` which propagates
-missing values.
-
-``` r
-patients$deceased == TRUE
-```
-
-    ## [1] FALSE  TRUE    NA  TRUE    NA FALSE  TRUE
-
-``` r
-patients$deceased %in% TRUE
-```
-
-    ## [1] FALSE  TRUE FALSE  TRUE FALSE FALSE  TRUE
-
-Swapping `==` for `%in%` can sometimes make your `filter()` call clearer
-than using `is.na()`, but `exclude()` is still more readable.
-
-> Drop rows with a `deceased` patient.
-
-``` r
-# Wrong, want to keep `NA`s where `deceased` status is unknown
-patients |>
-  filter(!deceased)
-```
-
-    ## # A tibble: 2 × 3
-    ##   name  deceased  date
-    ##   <chr> <lgl>    <dbl>
-    ## 1 Anne  FALSE     2005
-    ## 2 Derek FALSE       NA
-
-These all work, with `exclude()` being a clear winner:
-
-``` r
-patients |>
-  filter(!deceased | is.na(deceased))
-```
-
-    ## # A tibble: 4 × 3
-    ##   name  deceased  date
-    ##   <chr> <lgl>    <dbl>
-    ## 1 Anne  FALSE     2005
-    ## 2 Sarah NA          NA
-    ## 3 Max   NA        2010
-    ## 4 Derek FALSE       NA
-
-``` r
-patients |>
-  filter(!(deceased %in% TRUE))
-```
-
-    ## # A tibble: 4 × 3
-    ##   name  deceased  date
-    ##   <chr> <lgl>    <dbl>
-    ## 1 Anne  FALSE     2005
-    ## 2 Sarah NA          NA
-    ## 3 Max   NA        2010
-    ## 4 Derek FALSE       NA
-
-``` r
-# Or
-patients |>
-  filter(deceased %in% c(FALSE, NA))
-```
-
-    ## # A tibble: 4 × 3
-    ##   name  deceased  date
-    ##   <chr> <lgl>    <dbl>
-    ## 1 Anne  FALSE     2005
-    ## 2 Sarah NA          NA
-    ## 3 Max   NA        2010
-    ## 4 Derek FALSE       NA
-
-``` r
-patients |>
-  exclude(deceased)
-```
-
-    ## # A tibble: 4 × 3
-    ##   name  deceased  date
-    ##   <chr> <lgl>    <dbl>
-    ## 1 Anne  FALSE     2005
-    ## 2 Sarah NA          NA
-    ## 3 Max   NA        2010
-    ## 4 Derek FALSE       NA
 
 ### Excluding rows using `this | that`
 
@@ -626,6 +535,148 @@ anti_join(
 I’d argue that this is much “too clever” for the problem at hand. It
 also gets prohibitively slow as the size of the data increases because
 you are anti-joining across all columns at once.
+
+#### With `%in%`
+
+`%in%` has historically been a common way to work around `NA` related
+issues because it removes the `NA`s for you by performing an “exact
+match” that only returns `TRUE` or `FALSE`, unlike `==` which propagates
+missing values.
+
+> *Exclude* rows where the country name is `"US"` *or* `"CA"`.
+
+``` r
+countries <- tibble(
+  name = c("US", "CA", NA, "RU", "US", NA, "CA", "PR")
+)
+
+countries
+```
+
+    ## # A tibble: 8 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 US   
+    ## 2 CA   
+    ## 3 <NA> 
+    ## 4 RU   
+    ## 5 US   
+    ## 6 <NA> 
+    ## 7 CA   
+    ## 8 PR
+
+Directly translating the problem statement gives you
+`name == "US" | name == "CA"`, and inverting that to work with filter
+gives you:
+
+``` r
+countries |>
+  filter(!(name == "US" | name == "CA"))
+```
+
+    ## # A tibble: 2 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 RU   
+    ## 2 PR
+
+But this is wrong because it once again drops your `NA`s. You’d need:
+
+``` r
+countries |>
+  filter(!(name == "US" | name == "CA") | is.na(name))
+```
+
+    ## # A tibble: 4 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 <NA> 
+    ## 2 RU   
+    ## 3 <NA> 
+    ## 4 PR
+
+Savvy programmers might know that `%in%` can be used instead:
+
+``` r
+countries |>
+  filter(!name %in% c("US", "CA"))
+```
+
+    ## # A tibble: 4 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 <NA> 
+    ## 2 RU   
+    ## 3 <NA> 
+    ## 4 PR
+
+This works because `%in%` preemptively turns `NA` into `FALSE` rather
+than propagating them:
+
+``` r
+!(countries$name == "US" | countries$name == "CA")
+```
+
+    ## [1] FALSE FALSE    NA  TRUE FALSE    NA FALSE  TRUE
+
+``` r
+!countries$name %in% c("US", "CA")
+```
+
+    ## [1] FALSE FALSE  TRUE  TRUE FALSE  TRUE FALSE  TRUE
+
+(Operator precedence also happens to work in your favor here, with `!`
+being applied *after* the `%in%`, but many people would wrap
+`name %in% c("US", "CA")` in an extra set of parentheses for clarity,
+because that’s hard to remember!)
+
+With `exclude()`, your original translation of the problem would work as
+expected:
+
+``` r
+countries |>
+  exclude(name == "US" | name == "CA")
+```
+
+    ## # A tibble: 4 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 <NA> 
+    ## 2 RU   
+    ## 3 <NA> 
+    ## 4 PR
+
+As mentioned earlier, this could be written as two sequential
+`exclude()`s:
+
+``` r
+countries |>
+  exclude(name == "US") |>
+  exclude(name == "CA")
+```
+
+    ## # A tibble: 4 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 <NA> 
+    ## 2 RU   
+    ## 3 <NA> 
+    ## 4 PR
+
+And `%in%` works here as well, and doesn’t require the `!` out front:
+
+``` r
+countries |>
+  exclude(name %in% c("US", "CA"))
+```
+
+    ## # A tibble: 4 × 1
+    ##   name 
+    ##   <chr>
+    ## 1 <NA> 
+    ## 2 RU   
+    ## 3 <NA> 
+    ## 4 PR
 
 #### `tidyr::drop_na()`
 
