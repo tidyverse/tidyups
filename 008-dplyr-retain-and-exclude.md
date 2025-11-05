@@ -42,8 +42,8 @@ retain(.data, ..., .by = NULL)
 exclude(.data, ..., .by = NULL)
 
 # Vector functions
-when_any(..., missing = NULL)
-when_all(..., missing = NULL)
+when_any(..., na_rm = FALSE)
+when_all(..., na_rm = FALSE)
 ```
 
 For `retain()` and `exclude()`:
@@ -66,13 +66,10 @@ For `when_any()` and `when_all()`:
 
 - `when_all()` combines conditions with `&`.
 
-- `missing = NULL` propagates `NA` through according to the typical `&`
+- `na_rm = FALSE` propagates `NA` through according to the typical `&`
   and `|` rules. Propagating missing values by default combines well
-  `retain()` and `exclude()`.
-
-- `missing = FALSE / TRUE` replace `NA` with the specified `missing`
-  value before combining. This acts as a more flexible `na_rm` style
-  argument.
+  `retain()` and `exclude()`. `na_rm = TRUE` removes `NA`s “rowwise”
+  from the computation, exactly like in `pmin()` and `pmax()`.
 
 - These functions can be used anywhere, not just in `retain()` and
   `exclude()`.
@@ -1054,10 +1051,12 @@ disguise:
 - [`exclude(col == "str")`](https://stackoverflow.com/questions/46378437/how-to-filter-data-without-losing-na-rows-using-dplyr)
 - [`exclude(var1 == 1)`](https://stackoverflow.com/questions/32908589/why-does-dplyrs-filter-drop-na-values-from-a-factor-variable)
 
-In the *extremely* rare cases where you might need `missing =`, you can
-use `when_any()` and `when_all()` inside of `retain()` and `exclude()`.
-These propagate missings by default but have a `missing` argument for
-you to control this behavior.
+In the *extremely* rare cases where you might need `missing = TRUE`, you
+can nest `when_all(na_rm = TRUE)` inside of `retain()` and `exclude()`.
+This propagates missings by default but `na_rm = TRUE` removes missings
+from the computation. For an “all” style operation, that is equivalent
+to treating missings like `TRUE` (i.e. `all()` and
+`all(NA, na.rm = TRUE)` both return `TRUE`).
 
 ## Appendix
 
@@ -1079,18 +1078,22 @@ Related issues and examples:
 
 Tables like these help us ensure there aren’t any holes in our designs.
 
-Intent vs Combine
+#### Intent vs Combine
 
-<table style="width:99%;">
+<table style="width:97%;">
 <colgroup>
-<col style="width: 15%" />
-<col style="width: 15%" />
-<col style="width: 67%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 20%" />
+<col style="width: 10%" />
+<col style="width: 49%" />
 </colgroup>
 <thead>
 <tr>
 <th>Intent</th>
 <th>Combine</th>
+<th>Hypothetical usage %</th>
+<th>Currently</th>
 <th>Solution</th>
 </tr>
 </thead>
@@ -1098,21 +1101,29 @@ Intent vs Combine
 <tr>
 <td>Retain</td>
 <td>And</td>
+<td>50%</td>
+<td>✅</td>
 <td><code>retain(a, b, c)</code></td>
 </tr>
 <tr>
 <td>Retain</td>
 <td>Or</td>
+<td>5%</td>
+<td>❌</td>
 <td><code>retain(when_any(a, b, c))</code></td>
 </tr>
 <tr>
 <td>Exclude</td>
 <td>And</td>
+<td>35%</td>
+<td>❌</td>
 <td><code>exclude(a, b, c)</code></td>
 </tr>
 <tr>
 <td>Exclude</td>
 <td>Or</td>
+<td>10%</td>
+<td>❌</td>
 <td><p><code>exclude(when_any(a, b, c))</code></p>
 <p>In practice:
 <code>exclude(a) |&gt; exclude(b) |&gt; exclude(c)</code></p></td>
@@ -1120,11 +1131,51 @@ Intent vs Combine
 </tbody>
 </table>
 
-Intent vs Missings
+#### Intent vs Missings
 
 | Intent | Missings | Outcome | Usefulness |
 |----|----|----|----|
 | Retain | Treat as `FALSE` | Retain rows where you *know* the conditions are `TRUE` | Very. Existing `filter()` behavior. |
 | Exclude | Treat as `FALSE` | Exclude rows where you *know* the conditions are `TRUE` | Very. Simplifies “treat `filter()` as an exclude” cases. |
-| Retain | Treat as `TRUE` | Retain rows where conditions are `TRUE` or `NA` | Unconvinced. Often this is an `exclude()` in disguise. |
-| Exclude | Treat as `TRUE` | Exclude rows where conditions are `TRUE` or `NA` | Unconvinced. |
+| Retain | Treat as `TRUE` | Retain rows where conditions are `TRUE` or `NA` | Not. This is an `exclude()` in disguise. |
+| Exclude | Treat as `TRUE` | Exclude rows where conditions are `TRUE` or `NA` | Not. Never seen an example of this. |
+
+#### Connection to vctrs
+
+We purposefully don’t expose `missing` directly on the dplyr side. The
+3-valued argument is quite complicated to think about. Instead it
+bubbles up through `retain()` / `exclude()` using `missing = FALSE` and
+`when_all()` / `when_any()`’s `na_rm` argument.
+
+Particularly confusing for the average consumer is that
+`when_all(na_rm = TRUE)` maps to `list_pall(missing = TRUE)` but
+`when_any(na_rm = TRUE)` maps to `list_pany(missing = FALSE)`. Exposing
+only `na_rm = TRUE` saves users from having to do these very hard mental
+gymnastics.
+
+| vctrs | Data frame | Vector |
+|----|----|----|
+| `list_pall(missing = NULL)` |  | `when_all(na_rm = FALSE)` |
+| `list_pall(missing = FALSE)` | `retain()` / `exclude()` |  |
+| `list_pall(missing = TRUE)` |  | `when_all(na_rm = TRUE)` |
+| `list_pany(missing = NULL)` |  | `when_any(na_rm = FALSE)` |
+| `list_pany(missing = FALSE)` |  | `when_any(na_rm = TRUE)` |
+| `list_pany(missing = TRUE)` |  |  |
+
+- `list_pall(missing = FALSE)`:
+
+  - Interesting how this is useful as the `retain()` / `exclude()`
+    default behavior but becomes too confusing to try and expose in
+    `when_all()` as `missing` vs the simpler `na_rm`. Keeping “the most
+    flexible” vector function way in vctrs feels right since the
+    `missing = FALSE` case here is less useful in a vector context. It
+    doesn’t prevent you from doing `retain(when_all())` because the
+    default propagates `NA` and then `retain()` itself does the
+    `missing = FALSE` part.
+
+- `list_pany(missing = TRUE)`:
+
+  - Like `list_pall(missing = FALSE)`, this is not the useful variant to
+    expose at the vector level. Also happens to not have an exposed data
+    frame variant, so dplyr doesn’t expose it at all, which feels fine.
+    Not a single example needed it.
