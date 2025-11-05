@@ -53,6 +53,9 @@ For `retain()` and `exclude()`:
 
     -   As we will see, having `exclude()` work in this way simplifies many cases of using `filter()` to exclude rows.
 
+-   A key invariant is that `union(retain(data, ...), exclude(data, ...))` returns `data` (with a different row ordering).
+    This is not true of `union(filter(data, ...), filter(data, !(...)))` due to `NA`s being dropped by `filter()`.
+
 For `when_any()` and `when_all()`:
 
 -   These are equivalents to `pmin()` and `pmax()`, but applied to `any()` and `all()`.
