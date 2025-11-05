@@ -599,6 +599,7 @@ much simpler `exclude()`:
 
 ``` r
 data |> filter(!(this | that | those))
+data |> exclude(this | that | those)
 data |> exclude(this) |> exclude(that) |> exclude(those)
 ```
 
