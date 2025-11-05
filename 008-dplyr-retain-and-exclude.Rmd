@@ -351,7 +351,6 @@ In general, the following form of `filter()` can always be written as a much sim
 
 ```{r, eval = FALSE}
 data |> filter(!(this | that | those))
-data |> exclude(this | that | those)
 data |> exclude(this) |> exclude(that) |> exclude(those)
 ```
 
