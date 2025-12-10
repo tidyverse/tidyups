@@ -1,0 +1,273 @@
+---
+output: github_document
+---
+
+# Tidyup 9: R project requirements
+
+**Champion**: Thomas
+
+**Co-Champion**: Hadley
+
+**Status**: Draft
+
+## Abstract
+
+Historically, R has had a single way of describing the requirements of a project: the `DESCRIPTION` file. This is a text file in the dcf format which is used to describe metadata for an R package, including any dependencies the package may have. While this file format could also be used to describe non-package R project, it has a number of deficiencies that makes it reasonable to consider a new format altogether. These includes:
+
+-   Insufficient syntax for dependency version requirements
+-   Depends/Imports/Suggests/Enhances does not align well with the dependency levels needed for projects in general
+-   No way to specify the source of the package, fallbacks if not accessible, etc
+
+It would be possible to add to the syntax and spec of the DESCRIPTION file but we would then end up with two divergent specifications with resulting confusion.
+
+In parallel with this, there have been efforts to create ways of capturing the exact environment of a project for the sake of reproduction. The current state of the art for this is renv, which encodes the state in an renv.lock file. However, a lock file is orthogonal to describing requirements as it fixes all dependencies to a specific version making graceful upgrades of dependencies difficult.
+
+This document intends to sketch out a new file specification for describing *requirements* of R projects. The goal is to support:
+
+-   Rich version constraints of dependencies
+-   Global and per-package repositories for dependencies
+-   Meaningful levels of dependencies, including:
+    -   Testing
+    -   Development
+    -   Platform
+-   R and system requirements
+-   General project metadata
+
+Further, from the spec it should be possible to derive renv lockfile and a DESCRIPTION file (but not the other way since our spec will be richer). The spec should be able to exist in a separate file as well as inlined in a script file as a header.
+
+Initial support for the spec should include:
+
+-   pak, for deriving and installing dependencies according to the requirements
+-   rig, for setting up the correct R version, as well as installing dependencies. Should probably also be able to derive an renv.lock file
+-   Connect and Connect Cloud should accept this as an alternative to manifest.json
+
+## Prior art
+
+Project requirements are not a problem unique to R and many programming languages have different ways of solving it. We want to highlight just a few:
+
+### pyproject.toml in uv (Python)
+
+TBD
+
+### cargo.toml
+
+TBD
+
+### rproject.toml in rv (R)
+
+TBD
+
+## Proposal
+
+Below is an example `rproj.toml` file showcasing the various parts of the proposed specification
+
+``` toml
+# Project metadata
+[project]
+name = "example-project"
+version = "0.1.0"
+description = "An example R project"
+authors = [
+  {name = "Jane Doe", email = "jane@example.com", role = "creator"},
+  {name = "John Smith", email = "john@example.com", role = "contributor"}
+]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/user/example-project"
+repository = "https://github.com/user/example-project"
+keywords = ["data-science", "machine-learning"]
+
+# R version requirements
+[r]
+version = ">= 4.1.0, < 4.5.0"
+options.warn_level = 1
+options.defaultPackages = ["utils", "stats", "datasets", "graphics", "grDevices", "methods"]
+
+# Repository configuration
+[[repositories]]
+name = "CRAN"
+url = "https://cran.r-project.org"
+priority = 100
+
+[[repositories]]
+name = "Posit"
+url = "https://packagemanager.posit.co/cran/latest"
+priority = 50
+auth.type = "token"
+auth.env_var = "POSIT_TOKEN"
+
+[[repositories]]
+name = "BioConductor"
+url = "https://bioconductor.org/packages/release/bioc"
+priority = 25
+
+# Core dependencies (required for the project)
+[dependencies]
+dplyr = "^1.1.0"        # Compatible with 1.1.0 up to but not including 2.0.0
+ggplot2 = "~3.4.0"      # Patch updates only (3.4.x)
+readr = ">= 2.1.0"      # 2.1.0 or higher
+tidyr = "1.3.0"         # Exact version
+shiny = { version = "1.7.4", repository = "CRAN" }
+rmarkdown = { version = "^2.20", features = ["pandoc"] }
+
+# Package from GitHub
+github_pkg = { git = "https://github.com/user/github_pkg", ref = "v1.0.0" }
+
+# Local package
+local_pkg = { path = "../local_pkg" }
+
+# Package from URL
+url_pkg = { url = "https://example.com/url_pkg.tar.gz", hash = "sha256:a1b2c3..." }
+
+# Development dependencies (not needed for production)
+[dependencies.dev]
+testthat = "^3.1.0"
+roxygen2 = "^7.2.0"
+devtools = "^2.4.0"
+lintr = "^3.0.0"
+
+# Testing dependencies
+[dependencies.test]
+mockery = "^0.4.3"
+covr = "^3.6.1"
+
+# Documentation dependencies
+[dependencies.doc]
+pkgdown = "^2.0.0"
+knitr = "^1.40"
+
+# Platform-specific dependencies
+[dependencies.platform.windows]
+winpackage = "^1.0.0"
+
+[dependencies.platform.macos]
+macpackage = "^1.0.0"
+
+[dependencies.platform.linux]
+linuxpackage = "^1.0.0"
+
+# System requirements (non-R dependencies)
+[system.requirements]
+python = ">= 3.8.0"
+node = ">= 16.0.0"
+pandoc = ">= 2.18"
+gdal = { version = ">= 3.0.0", optional = true }
+
+# Project entry points (runnable components)
+[entrypoints]
+main = "app.R"
+
+[entrypoints.shiny]
+path = "app.R"
+dependencies = ["shiny", "shinyWidgets"]
+description = "Shiny dashboard application"
+
+[entrypoints.report]
+path = "reports/analysis.Rmd"
+dependencies = ["rmarkdown", "knitr"]
+description = "Monthly analysis report"
+
+# Scripts - standalone scripts with their dependencies
+[scripts]
+clean = { path = "scripts/clean_data.R", description = "Clean raw data files" }
+preprocess = { path = "scripts/preprocess.R", description = "Preprocess cleaned data" }
+train = { path = "scripts/train_model.R", description = "Train ML model", deps = ["tidymodels"] }
+
+# Custom project configuration
+[config]
+library_path = "renv/library"  # Custom library path
+data_dir = "data"  # Data directory
+results_dir = "results"  # Results directory
+auto_install = true  # Auto-install missing packages
+renv_integration = true  # Enable renv integration
+```
+
+### Version Specification Reference
+
+| Format             | Meaning               | Example                          |
+|-------------------|----------------------|-------------------------------|
+| `"x.y.z"`          | Exact version         | `"1.2.3"`                        |
+| `">= x.y.z"`       | Greater than or equal | `">= 1.2.3"`                     |
+| `"< x.y.z"`        | Less than             | `"< 2.0.0"`                      |
+| `"~x.y.z"`         | Patch updates only    | `"~1.2.0"` → `>= 1.2.0, < 1.3.0` |
+| `"^x.y.z"`         | Compatible updates    | `"^1.2.3"` → `>= 1.2.3, < 2.0.0` |
+| `"range1, range2"` | Multiple constraints  | `">= 1.0.0, < 2.0.0"`            |
+
+### Repository Configuration
+
+Repositories can be configured with:
+
+-   **name**: Identifier for the repository
+-   **url**: URL for accessing packages
+-   **priority**: Order in which repositories are checked (higher = first)
+-   **auth**: Authentication details for private repositories
+-   **type**: Repository type (e.g., "cran", "bioc", "custom")
+
+### Dependency Types
+
+Different types of dependencies can be specified:
+
+-   **\[dependencies\]**: Core runtime dependencies
+-   **\[dependencies.dev\]**: Development tools and utilities
+-   **\[dependencies.test\]**: Testing frameworks and helpers
+-   **\[dependencies.doc\]**: Documentation generation tools
+-   **\[dependencies.platform.X\]**: Platform-specific packages
+
+### Package Sources
+
+Packages can be sourced from:
+
+-   **CRAN/BioConductor/etc.**: Standard repositories
+-   **GitHub**: Direct from git repositories
+-   **Local paths**: Local package directories
+-   **URLs**: Downloadable package archives
+-   **Custom repositories**: User-defined package sources
+
+### renv.lock Integration
+
+Rather than defining a new lockfile format, this proposal leverages the existing `renv.lock` format. The current `renv.lock` format is already well-established in the R ecosystem and provides:
+
+-   Exact versions of all direct and transitive dependencies
+-   Source information (repository URLs)
+-   Package hashes for verification
+-   Platform awareness
+
+Tools implementing this standard would:
+
+1.  Read dependency intent from `rproj.toml`
+
+2.  Resolve dependencies according to specified constraints
+
+3.  Write exact resolution results to `renv.lock`
+
+4.  Use `renv.lock` for reproducible installations
+
+## Open questions
+
+------------------------------------------------------------------------
+
+The `[dependencies.test]` syntax adds a subtable to the `dependencies` table. This means that it may conflict with other entries in the `dependencies` table, e.g. if someone where to create a package called `"test"` and your project depended on that then you couldn't define any test dependencies because this is not allowed:
+
+``` toml
+[dependencies]
+test = "0.3.0"
+
+[dependencies.test]
+testthat = "0.1.0"
+```
+
+------------------------------------------------------------------------
+
+The subtables of `[entrypoints]` e.g. `[entrypoints.shiny]` seems to add package specific behavior to the spec which seems like a bad way to go down. Alternatively we define the `[entrypoints]` fields in the same way as the `[repositories]` fields and provide a spec for the elements. Still, I'm not sure what kind of functionality we are looking to gain from this
+
+------------------------------------------------------------------------
+
+The `rmarkdown = { version = "^2.20", features = ["pandoc"] }` line seems unspecified. What does the `features` field denote?
+
+------------------------------------------------------------------------
+
+It is unclear what the purpose of the `[scripts]` table is. Is it purely for documentation, in which case this information should probably live in the script file so it travels around with it.
+
+------------------------------------------------------------------------
+
+Should rig or some other cli tool be able to setup *and* execute a script without the user ever opening up R. Kind of analogous to `cargo run`?
