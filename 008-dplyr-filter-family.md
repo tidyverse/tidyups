@@ -5,7 +5,7 @@
 
 **Co-Champion**: Hadley
 
-**Status**: Draft
+**Status**: Accepted
 
 ``` r
 library(dplyr, warn.conflicts = FALSE)
