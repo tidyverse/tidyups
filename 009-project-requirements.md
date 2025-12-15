@@ -130,7 +130,6 @@ ggplot2 = "~3.4.0"      # Patch updates only (3.4.x)
 readr = ">= 2.1.0"      # 2.1.0 or higher
 tidyr = "1.3.0"         # Exact version
 shiny = { version = "1.7.4", repository = "CRAN" }
-rmarkdown = { version = "^2.20", features = ["pandoc"] }
 
 # Package from GitHub
 github_pkg = { git = "https://github.com/user/github_pkg", ref = "v1.0.0" }
@@ -142,30 +141,30 @@ local_pkg = { path = "../local_pkg" }
 url_pkg = { url = "https://example.com/url_pkg.tar.gz", hash = "sha256:a1b2c3..." }
 
 # Development dependencies (not needed for production)
-[dependencies.dev]
+[additional-dependencies.dev]
 testthat = "^3.1.0"
 roxygen2 = "^7.2.0"
 devtools = "^2.4.0"
 lintr = "^3.0.0"
 
 # Testing dependencies
-[dependencies.test]
+[additional-dependencies.test]
 mockery = "^0.4.3"
 covr = "^3.6.1"
 
 # Documentation dependencies
-[dependencies.doc]
+[additional-dependencies.doc]
 pkgdown = "^2.0.0"
 knitr = "^1.40"
 
 # Platform-specific dependencies
-[dependencies.platform.windows]
+[additional-dependencies.platform.windows]
 winpackage = "^1.0.0"
 
-[dependencies.platform.macos]
+[additional-dependencies.platform.macos]
 macpackage = "^1.0.0"
 
-[dependencies.platform.linux]
+[additional-dependencies.platform.linux]
 linuxpackage = "^1.0.0"
 
 # System requirements (non-R dependencies)
@@ -174,26 +173,6 @@ python = ">= 3.8.0"
 node = ">= 16.0.0"
 pandoc = ">= 2.18"
 gdal = { version = ">= 3.0.0", optional = true }
-
-# Project entry points (runnable components)
-[entrypoints]
-main = "app.R"
-
-[entrypoints.shiny]
-path = "app.R"
-dependencies = ["shiny", "shinyWidgets"]
-description = "Shiny dashboard application"
-
-[entrypoints.report]
-path = "reports/analysis.Rmd"
-dependencies = ["rmarkdown", "knitr"]
-description = "Monthly analysis report"
-
-# Scripts - standalone scripts with their dependencies
-[scripts]
-clean = { path = "scripts/clean_data.R", description = "Clean raw data files" }
-preprocess = { path = "scripts/preprocess.R", description = "Preprocess cleaned data" }
-train = { path = "scripts/train_model.R", description = "Train ML model", deps = ["tidymodels"] }
 
 # Custom project configuration
 [config]
