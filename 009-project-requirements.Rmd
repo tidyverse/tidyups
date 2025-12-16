@@ -110,7 +110,7 @@ tidyr = "1.3.0"         # Exact version
 shiny = { version = "1.7.4", repository = "CRAN" }
 
 # Package from GitHub
-github_pkg = { git = "https://github.com/user/github_pkg", ref = "v1.0.0" }
+github_pkg = { git = "https://github.com/user/github_pkg", tag = "v1.0.0" }
 
 # Local package
 local_pkg = { path = "../local_pkg" }
@@ -146,7 +146,7 @@ macpackage = "^1.0.0"
 linuxpackage = "^1.0.0"
 
 # System requirements (non-R dependencies)
-[system.requirements]
+[system-dependencies]
 python = ">= 3.8.0"
 node = ">= 16.0.0"
 pandoc = ">= 2.18"
@@ -161,48 +161,127 @@ auto_install = true  # Auto-install missing packages
 renv_integration = true  # Enable renv integration
 ```
 
-### Version Specification Reference
+### The project table
 
-| Format             | Meaning               | Example                          |
+This table contains metadata about the specific project. None of these fields are relevant to how the project should be executed or how the environment it should be executed in looks like. The specific elements of the table are as follows:
+
+| Element | Description |
+|-----------|-------------------------------------------------------------|
+| name | The name of the project as a single string with no spaces |
+| version | The current version of the project |
+| description | 1-3 sentences describing the project |
+| authors | An array of inline tables giving name, email, and role of the authors of the project |
+| license | The license this project is distributed under |
+| readme | A pointer to the file that serves as this projects readme document |
+| homepage | The url of this projects homepage |
+| repository | The location of the repository for this project |
+| keywords | An array of keywords describing the project |
+
+### The r table
+
+This table describe the R environment that the project should be executed in. Specifically the version constraints on the R runtime, but also additional settings in R
+
+| Element | Description |
+|------------|------------------------------------------------------------|
+| version | The version of R to use for executing the project. See the version syntax in the description of the [dependencies] table |
+| options | A subtable holding any R `options()` that should be applied to the session before executing the project |
+| env | A subtable holding environment variables that should be set in the R session prior to executing the project |
+
+### The repositories table array
+
+repositories is an array of repository configurations which define the various locations the dependencies can come from. Each entry into the array must be conform to the following spec
+
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| name | The name of the repository. Will be used when referencing the repository in dependencies |
+| url | The url pointing to the repository. The repository must conform to CRAN guidelines for R repositories |
+| priority | An integer. Repositories will be tried in descending order so the repository with the highest priority will come first |
+| auth | A subtable giving optional authentication settings for the repository. The subtable must include a `type` element defining how authentication must be done, along with any additional elements relevant to the type |
+
+### The dependencies table {#dependencies}
+
+This table gives hard R package dependencies for the project which will be required for any mode of execution (see [The additional-dependencies table]). Dependencies are given as named entries to the table with the name giving the name of the dependency. The value can be either a single string giving the version constraint of the dependency or a subtable with more specific information of the nature of the dependency
+
+#### Version Specification Reference
+
+| Format | Meaning | Example |
 |-------------------|----------------------|-------------------------------|
-| `"x.y.z"`          | Exact version         | `"1.2.3"`                        |
-| `">= x.y.z"`       | Greater than or equal | `">= 1.2.3"`                     |
-| `"< x.y.z"`        | Less than             | `"< 2.0.0"`                      |
-| `"~x.y.z"`         | Patch updates only    | `"~1.2.0"` → `>= 1.2.0, < 1.3.0` |
-| `"^x.y.z"`         | Compatible updates    | `"^1.2.3"` → `>= 1.2.3, < 2.0.0` |
-| `"range1, range2"` | Multiple constraints  | `">= 1.0.0, < 2.0.0"`            |
+| `"x.y.z"` or `"^x.y.z"` | Compatible updates | `"1.2.3"`/`"^1.2.3"` → `>= 1.2.3, < 2.0.0` |
+| `"=x.y.z"` | Exact version | `"=1.2.3"` |
+| `">= x.y.z"` | Greater than or equal | `">=1.2.3"` |
+| `"< x.y.z"` | Less than | `"<2.0.0"` |
+| `"~x.y.z"` | Patch updates only | `"~1.2.0"` → `>=1.2.0, <1.3.0` |
+| `"range1, range2"` | Multiple constraints | `">= 1.0.0, < 2.0.0"` |
 
-### Repository Configuration
+#### Subtable syntax
 
-Repositories can be configured with:
+When providing the dependency as a subtable it can follow one of several schemas:
 
--   **name**: Identifier for the repository
--   **url**: URL for accessing packages
--   **priority**: Order in which repositories are checked (higher = first)
--   **auth**: Authentication details for private repositories
--   **type**: Repository type (e.g., "cran", "bioc", "custom")
+##### Version and repository
 
-### Dependency Types
+If you want to specify the exact repository to retrieve the dependency from use a subtable with the following schema
 
-Different types of dependencies can be specified:
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| version | The version requirement of the package as described above |
+| repository | The name of the repository to retrieve it from, referencing a repository given in the repositories array |
 
--   **\[dependencies\]**: Core runtime dependencies
--   **\[dependencies.dev\]**: Development tools and utilities
--   **\[dependencies.test\]**: Testing frameworks and helpers
--   **\[dependencies.doc\]**: Documentation generation tools
--   **\[dependencies.platform.X\]**: Platform-specific packages
+##### Git package
 
-### Package Sources
+If you want to use a dependency from a git repository use a subtable with the following schema
 
-Packages can be sourced from:
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| git | A url pointing to the package in the given repository. The terminal `.git` part of the url is optional |
+| branch | Which branch to get. If omitted the default branch will be used (unless rev or tag is set) |
+| tag | A specific git tag to use |
+| rev | Any identifier not branch or tag. Often a commit hash, but some repositories also allow you to reference pull requests etc. |
 
--   **CRAN/BioConductor/etc.**: Standard repositories
--   **GitHub**: Direct from git repositories
--   **Local paths**: Local package directories
--   **URLs**: Downloadable package archives
--   **Custom repositories**: User-defined package sources
+##### Package from url
 
-### renv.lock Integration
+If the dependency is located outside of git but accessible as a build tarball online you can use the following subtable
+
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| url | The url pointing to the package |
+| hash | A checksum for the package given as a combination of algorithm and hash, separated by `:`. |
+
+##### Local package
+
+A local package can be stated as a dependency with this subtable
+
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| path | A path pointing to either the source directory of the dependency or a build tarball. The path can either be absolute or relative to the rproj.toml file |
+
+### The additional-dependencies table
+
+The dependencies table gives strong dependencies for the project under any mode of use. However, there may be dependencies that are only relevant for certain scopes of use. These can be given as subtables to the additional-dependencies table. The schema of the subtables matches that of the dependencies table. While you are free to define new types of additional dependencies, a set of predefined types are provided and should be used if they match the need:
+
+-   `additiona-dependencies.test` provides dependencies only relevant during testing of the package
+
+-   `additiona-dependencies.dev` provides dependencies only relevant during development of the package
+
+-   `additiona-dependencies.doc` provides dependencies only relevant when rendering the documentation of the package
+
+-   `additiona-dependencies.platform.<OS>` provides dependencies only relevant when running on the given OS
+
+### The system-dependencies table
+
+The dependencies and additional-dependencies table only concern themselves with R package dependencies. There may be system library requirements as well which can be stated under the system-dependencies table. This table contain named entries with the name giving the system library and the value giving either the version constraint or a subtable with additional information about the dependency. The version string is subject to the same syntax as given [Version Specification Reference]. If providing a subtable it must follow the given schema
+
+| Element | Description |
+|-------------|-----------------------------------------------------------|
+| version | The version requirement of the system library as described above |
+| optional | A boolean indicating if the requirement is hard (defaults to true) |
+| libname | A subtable giving the exact name of the library for specific distributions if it cannot be resolved automatically. |
+| needed-for | An array of strings referencing the subtables in the additional-dependencies table. If provided it will only be required in those modes. If missing the library will be installed for all modes. |
+
+### The config table
+
+This table allows you to set specific runtime settings for your project. Schema TBD
+
+## renv.lock Integration
 
 Rather than defining a new lockfile format, this proposal leverages the existing `renv.lock` format. The current `renv.lock` format is already well-established in the R ecosystem and provides:
 
@@ -220,33 +299,3 @@ Tools implementing this standard would:
 3.  Write exact resolution results to `renv.lock`
 
 4.  Use `renv.lock` for reproducible installations
-
-## Open questions
-
-------------------------------------------------------------------------
-
-The `[dependencies.test]` syntax adds a subtable to the `dependencies` table. This means that it may conflict with other entries in the `dependencies` table, e.g. if someone where to create a package called `"test"` and your project depended on that then you couldn't define any test dependencies because this is not allowed:
-
-``` toml
-[dependencies]
-test = "0.3.0"
-
-[dependencies.test]
-testthat = "0.1.0"
-```
-
-------------------------------------------------------------------------
-
-The subtables of `[entrypoints]` e.g. `[entrypoints.shiny]` seems to add package specific behavior to the spec which seems like a bad way to go down. Alternatively we define the `[entrypoints]` fields in the same way as the `[repositories]` fields and provide a spec for the elements. Still, I'm not sure what kind of functionality we are looking to gain from this
-
-------------------------------------------------------------------------
-
-The `rmarkdown = { version = "^2.20", features = ["pandoc"] }` line seems unspecified. What does the `features` field denote?
-
-------------------------------------------------------------------------
-
-It is unclear what the purpose of the `[scripts]` table is. Is it purely for documentation, in which case this information should probably live in the script file so it travels around with it.
-
-------------------------------------------------------------------------
-
-Should rig or some other cli tool be able to setup *and* execute a script without the user ever opening up R. Kind of analogous to `cargo run`?
