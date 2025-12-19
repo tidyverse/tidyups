@@ -250,3 +250,51 @@ It is unclear what the purpose of the `[scripts]` table is. Is it purely for doc
 ------------------------------------------------------------------------
 
 Should rig or some other cli tool be able to setup *and* execute a script without the user ever opening up R. Kind of analogous to `cargo run`?
+
+## Motivating examples
+
+### The Matrix Package Problem
+
+#### What Happened
+In April 2024, the Matrix package (a core R package used by ~50% of CRAN) released version 1.7-0 requiring R >= 4.4. CRAN then removed the older version (1.6-5) from its package index, leaving users on R 4.2/4.3 unable to install Matrix or any package depending on it (like lme4, mgcv, ggplot2, etc.).
+
+#### The renv Lock File Problem
+Looking at an `renv.lock` from before 4.4, you have:
+* R version: 4.3.3
+* Matrix: pinned to exactly 1.6-5
+* Dependency chain: ggplot2 → mgcv → Matrix
+
+And looking at an `renv.lock` from after 4.4, you have:
+* R version: 4.4.0
+* Matrix: pinned to exactly 1.7-0
+* Dependency chain: ggplot2 → mgcv → Matrix
+
+**The issue** renv locks every package to an exact version. We can't use the first lockfile with R 4.4 and up, and we can't use the second one with anything before 4.4. This is even though neither ggplot2 nor mgcv actually care which Matrix version they get, they just need some compatible version.
+
+#### Current Workarounds (All Painful)
+1. Use an old snapshot of a repository → But then all packages are old, missing updates to unrelated packages
+2. Upgrade to R 4.4 everywhere → Often not possible in enterprise environments
+3. Manage two versions of lock files → Not scalable, error-prone, tedious
+
+#### One Dependency File, Multiple R Versions
+Here's the real power of flexible dependencies: the same project could work on both R 4.3 and R 4.4+ without any changes. Consider a flexible dependency file that just says:
+
+```
+[dependencies]
+ggplot2 = ">=3.1.0"
+# Matrix is transitive—don't pin it
+```
+
+#### On R 4.3.3:
+* Resolver finds Matrix 1.6-5 (compatible with R >= 3.5)
+* Installs ggplot2, mgcv, Matrix 1.6-5
+* Everything works ✓
+
+####  On R 4.4.0:
+* Resolver finds Matrix 1.7-0 (compatible with R >= 4.4)
+* Installs ggplot2, mgcv, Matrix 1.7-0
+* Everything works ✓
+
+**Why this works** The actual functions that mgcv uses from Matrix didn't change between 1.6-5 and 1.7-0. The API is stable. Similarly, ggplot2's usage of mgcv is unchanged. The R version requirement bump in Matrix was about internal/compilation changes, not about breaking the interface that downstream packages rely on. With exact version pins (current renv approach), you'd need separate lock files for R 4.3 vs R 4.4. With flexible dependencies, one file works everywhere—the resolver picks the right Matrix version for each environment automatically.
+
+Most transitive dependencies don't need exact versions—they just need compatibility. Lock files are too rigid: one package's version bump (Matrix requiring R 4.4) breaks the entire dependency tree, forcing you to freeze everything to an old date. Flexible dependency specifications (like npm, pip, cargo use) would let the solver find compatible combinations at install time, avoiding "snapshot hell" where you sacrifice updates to hundreds of packages just because one transitive dependency has a version conflict. And critically, they allow the same project to be portable across R versions without maintaining separate lock files.
