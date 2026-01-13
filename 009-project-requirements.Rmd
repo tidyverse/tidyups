@@ -41,6 +41,18 @@ Initial support for the spec should include:
 -   rig, for setting up the correct R version, as well as installing dependencies. Should probably also be able to derive an renv.lock file
 -   Connect and Connect Cloud should accept this as an alternative to manifest.json
 
+## Relevant use cases
+
+The following use cases are interesting to consider, because they bring out nuance in working with a project requirements specification:
+
+1. Local development of project. The user may have more flexibility in terms of R version and package versions available to use. Commonly, the default choice will be to use the latest version of R and the latest versions of packages available on CRAN. This presents the least constraints on dependency resolution.
+
+2. Production deployment of project. In ideal cases, development and production environments will closely match, however it is not uncommon that the user may have more constraints on R version and package versions available to use, and the the operating system and related system dependencies may differ. Dependency resolution may falter when translating local development environments to production environments, so it is critical that only the true constraints are captured in the project requirements. 
+
+3. Reproducing an old project. The user may want to reproduce or revive an old project. This may require using an older version of R and older versions of packages, which may no longer be available on CRAN. Operating system and related system dependencies may also differ. In this case, it is important that the project requirements capture all constraints necessary to reproduce the project, while still allowing for flexibility in resolving dependencies that are no longer available. Additionally, all new projects will eventually become old projects. The specification should have a means for maturing or evolving the project requirements without imposing unnecessary rigidity.
+
+
+
 ## Prior art
 
 Project requirements are not a problem unique to R and many programming languages have different ways of solving it. We want to highlight just a few:
