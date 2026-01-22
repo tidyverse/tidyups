@@ -41,6 +41,18 @@ Initial support for the spec should include:
 -   rig, for setting up the correct R version, as well as installing dependencies. Should probably also be able to derive an renv.lock file
 -   Connect and Connect Cloud should accept this as an alternative to manifest.json
 
+## Relevant use cases
+
+The following use cases are interesting to consider, because they bring out nuance in working with a project requirements specification:
+
+1. Local development of project. The user may have more flexibility in terms of R version and package versions available to use. Commonly, the default choice will be to use the latest version of R and the latest versions of packages available on CRAN. This presents the least constraints on dependency resolution.
+
+2. Production deployment of project. In ideal cases, development and production environments will closely match, however it is not uncommon that the user may have more constraints on R version and package versions available to use, and the the operating system and related system dependencies may differ. Dependency resolution may falter when translating local development environments to production environments, so it is critical that only the true constraints are captured in the project requirements. 
+
+3. Reproducing an old project. The user may want to reproduce or revive an old project. This may require using an older version of R and older versions of packages, which may no longer be available on CRAN. Operating system and related system dependencies may also differ. In this case, it is important that the project requirements capture all constraints necessary to reproduce the project, while still allowing for flexibility in resolving dependencies that are no longer available. Additionally, all new projects will eventually become old projects. The specification should have a means for maturing or evolving the project requirements without imposing unnecessary rigidity.
+
+
+
 ## Prior art
 
 Project requirements are not a problem unique to R and many programming languages have different ways of solving it. We want to highlight just a few:
@@ -299,3 +311,81 @@ Tools implementing this standard would:
 3.  Write exact resolution results to `renv.lock`
 
 4.  Use `renv.lock` for reproducible installations
+
+## Open questions
+
+------------------------------------------------------------------------
+
+The `[dependencies.test]` syntax adds a subtable to the `dependencies` table. This means that it may conflict with other entries in the `dependencies` table, e.g. if someone where to create a package called `"test"` and your project depended on that then you couldn't define any test dependencies because this is not allowed:
+
+``` toml
+[dependencies]
+test = "0.3.0"
+
+[dependencies.test]
+testthat = "0.1.0"
+```
+
+------------------------------------------------------------------------
+
+The subtables of `[entrypoints]` e.g. `[entrypoints.shiny]` seems to add package specific behavior to the spec which seems like a bad way to go down. Alternatively we define the `[entrypoints]` fields in the same way as the `[repositories]` fields and provide a spec for the elements. Still, I'm not sure what kind of functionality we are looking to gain from this
+
+------------------------------------------------------------------------
+
+The `rmarkdown = { version = "^2.20", features = ["pandoc"] }` line seems unspecified. What does the `features` field denote?
+
+------------------------------------------------------------------------
+
+It is unclear what the purpose of the `[scripts]` table is. Is it purely for documentation, in which case this information should probably live in the script file so it travels around with it.
+
+------------------------------------------------------------------------
+
+Should rig or some other cli tool be able to setup *and* execute a script without the user ever opening up R. Kind of analogous to `cargo run`?
+
+## Motivating examples
+
+### The Matrix Package Problem
+
+#### What Happened
+In April 2024, the Matrix package (a core R package used by ~50% of CRAN) released version 1.7-0 requiring R >= 4.4. CRAN then removed the older version (1.6-5) from its package index, leaving users on R 4.2/4.3 unable to install Matrix or any package depending on it (like lme4, mgcv, ggplot2, etc.).
+
+#### The renv Lock File Problem
+Looking at an `renv.lock` from before 4.4, you have:
+* R version: 4.3.3
+* Matrix: pinned to exactly 1.6-5
+* Dependency chain: ggplot2 → mgcv → Matrix
+
+And looking at an `renv.lock` from after 4.4, you have:
+* R version: 4.4.0
+* Matrix: pinned to exactly 1.7-0
+* Dependency chain: ggplot2 → mgcv → Matrix
+
+**The issue** renv locks every package to an exact version. We can't use the first lockfile with R 4.4 and up, and we can't use the second one with anything before 4.4. This is even though neither ggplot2 nor mgcv actually care which Matrix version they get, they just need some compatible version.
+
+#### Current Workarounds (All Painful)
+1. Use an old snapshot of a repository → But then all packages are old, missing updates to unrelated packages
+2. Upgrade to R 4.4 everywhere → Often not possible in enterprise environments
+3. Manage two versions of lock files → Not scalable, error-prone, tedious
+
+#### One Dependency File, Multiple R Versions
+Here's the real power of flexible dependencies: the same project could work on both R 4.3 and R 4.4+ without any changes. Consider a flexible dependency file that just says:
+
+```
+[dependencies]
+ggplot2 = ">=3.1.0"
+# Matrix is transitive—don't pin it
+```
+
+#### On R 4.3.3:
+* Resolver finds Matrix 1.6-5 (compatible with R >= 3.5)
+* Installs ggplot2, mgcv, Matrix 1.6-5
+* Everything works ✓
+
+####  On R 4.4.0:
+* Resolver finds Matrix 1.7-0 (compatible with R >= 4.4)
+* Installs ggplot2, mgcv, Matrix 1.7-0
+* Everything works ✓
+
+**Why this works** The actual functions that mgcv uses from Matrix didn't change between 1.6-5 and 1.7-0. The API is stable. Similarly, ggplot2's usage of mgcv is unchanged. The R version requirement bump in Matrix was about internal/compilation changes, not about breaking the interface that downstream packages rely on. With exact version pins (current renv approach), you'd need separate lock files for R 4.3 vs R 4.4. With flexible dependencies, one file works everywhere—the resolver picks the right Matrix version for each environment automatically.
+
+Most transitive dependencies don't need exact versions—they just need compatibility. Lock files are too rigid: one package's version bump (Matrix requiring R 4.4) breaks the entire dependency tree, forcing you to freeze everything to an old date. Flexible dependency specifications (like npm, pip, cargo use) would let the solver find compatible combinations at install time, avoiding "snapshot hell" where you sacrifice updates to hundreds of packages just because one transitive dependency has a version conflict. And critically, they allow the same project to be portable across R versions without maintaining separate lock files.
