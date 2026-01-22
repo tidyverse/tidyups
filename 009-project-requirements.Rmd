@@ -178,7 +178,7 @@ renv_integration = true  # Enable renv integration
 This table contains metadata about the specific project. None of these fields are relevant to how the project should be executed or how the environment it should be executed in looks like. The specific elements of the table are as follows:
 
 | Element | Description |
-|-----------|-------------------------------------------------------------|
+|------------------|------------------------------------------------------|
 | name | The name of the project as a single string with no spaces |
 | version | The current version of the project |
 | description | 1-3 sentences describing the project |
@@ -194,8 +194,8 @@ This table contains metadata about the specific project. None of these fields ar
 This table describe the R environment that the project should be executed in. Specifically the version constraints on the R runtime, but also additional settings in R
 
 | Element | Description |
-|------------|------------------------------------------------------------|
-| version | The version of R to use for executing the project. See the version syntax in the description of the [dependencies] table |
+|-------------------|-----------------------------------------------------|
+| version | The version of R to use for executing the project. See the version syntax in the description of the \[dependencies\] table |
 | options | A subtable holding any R `options()` that should be applied to the session before executing the project |
 | env | A subtable holding environment variables that should be set in the R session prior to executing the project |
 
@@ -204,7 +204,7 @@ This table describe the R environment that the project should be executed in. Sp
 repositories is an array of repository configurations which define the various locations the dependencies can come from. Each entry into the array must be conform to the following spec
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | name | The name of the repository. Will be used when referencing the repository in dependencies |
 | url | The url pointing to the repository. The repository must conform to CRAN guidelines for R repositories |
 | priority | An integer. Repositories will be tried in descending order so the repository with the highest priority will come first |
@@ -234,7 +234,7 @@ When providing the dependency as a subtable it can follow one of several schemas
 If you want to specify the exact repository to retrieve the dependency from use a subtable with the following schema
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | version | The version requirement of the package as described above |
 | repository | The name of the repository to retrieve it from, referencing a repository given in the repositories array |
 
@@ -243,7 +243,7 @@ If you want to specify the exact repository to retrieve the dependency from use 
 If you want to use a dependency from a git repository use a subtable with the following schema
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | git | A url pointing to the package in the given repository. The terminal `.git` part of the url is optional |
 | branch | Which branch to get. If omitted the default branch will be used (unless rev or tag is set) |
 | tag | A specific git tag to use |
@@ -254,7 +254,7 @@ If you want to use a dependency from a git repository use a subtable with the fo
 If the dependency is located outside of git but accessible as a build tarball online you can use the following subtable
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | url | The url pointing to the package |
 | hash | A checksum for the package given as a combination of algorithm and hash, separated by `:`. |
 
@@ -263,7 +263,7 @@ If the dependency is located outside of git but accessible as a build tarball on
 A local package can be stated as a dependency with this subtable
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | path | A path pointing to either the source directory of the dependency or a build tarball. The path can either be absolute or relative to the rproj.toml file |
 
 ### The additional-dependencies table
@@ -283,7 +283,7 @@ The dependencies table gives strong dependencies for the project under any mode 
 The dependencies and additional-dependencies table only concern themselves with R package dependencies. There may be system library requirements as well which can be stated under the system-dependencies table. This table contain named entries with the name giving the system library and the value giving either the version constraint or a subtable with additional information about the dependency. The version string is subject to the same syntax as given [Version Specification Reference]. If providing a subtable it must follow the given schema
 
 | Element | Description |
-|-------------|-----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | version | The version requirement of the system library as described above |
 | optional | A boolean indicating if the requirement is hard (defaults to true) |
 | libname | A subtable giving the exact name of the library for specific distributions if it cannot be resolved automatically. |
