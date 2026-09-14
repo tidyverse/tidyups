@@ -1,0 +1,260 @@
+---
+output: github_document
+---
+
+# Tidyup 10: R virtual environments (`rig proj` / `.rvenv`)
+
+**Champion**: Gábor Csárdi
+
+**Co-champion**: TBD
+
+**Status**: Draft
+
+## Abstract
+
+R has no equivalent of Python's `venv`: a per-project, isolated
+package library, tied to a specific R version, plus a matching activation
+solution that works the same way across shells, scripts, CI and IDEs.
+renv is the closest existing tool, but it predates R-installation managers
+like `rig`, isolates only packages rather than pinning R itself, and
+activates by shadowing the user's `.Rprofile`, which causes real,
+frequently-reported problems.
+
+This tidyup proposes a from-scratch, user-space R virtual environment
+design (`.rvenv`), built without modifying R itself, and its integration
+into `rig` as `rig proj lock`/`sync`/`rig run`. It brings R up to the
+level `uv` set for Python: a venv pinned to an exact R version and
+platform, three independent activation layers (a shell wrapper, an
+implicit `rig run` layer for scripts/CI, and a tracked `.Renviron` +
+shim package for IDEs) instead of a project `.Rprofile`, and a
+content-addressed package store shared with `rig`'s existing install
+machinery. None of the three activation layers shadows the user's own R
+configuration.
+
+## Motivation
+
+R lacks the tooling picture Python has built up around `venv`/`uv`.
+Most importantly:
+
+- No way to pin and manage the R installation itself alongside a project's
+  packages, the way `uv` pins an interpreter version next to its packages.
+  renv isolates only packages, predates R-installation managers like
+  `rig`, and has no notion of "this project needs R 4.3.2."
+- No standard notion of a project-local package library that "just works"
+  across shells, scripts, CI and IDEs at once.
+- No wrapper/shim convention analogous to a venv's `bin/python`, so
+  activating a project environment for interactive shell use,
+  non-interactive scripts, and IDE-launched sessions all require different
+  mechanisms today, if they exist at all.
+
+## Solution
+
+We propose `.rvenv`, a per-project R environment directory, built entirely
+in user space.
+
+### Layout
+
+```
+project-root/
+  rproj.lock              # tracked, lock file (see Tidyup 9 for the manifest side)
+  .Renviron               # tracked, IDE-activation leg
+  .gitignore              # tracked, /.rvenv/
+  .rvenvlib/
+    rvenv/                # tracked, minimal shim package, written by init
+  .rvenv/
+    lib/...               # untracked, the project library, filled by sync
+    lib/.synced           # untracked, stamp file written by sync (copy of rproj.lock)
+    rvenv.cfg             # untracked, machine-specific: R version/minor/platform/arch
+    onload.R              # untracked, rest of the shim's .onLoad(), rewritten by sync
+    bin/{R,Rscript,...}   # untracked, wrapper scripts, absolute real-R path
+    bin/activate{,.fish,.csh}, Activate.ps1
+```
+
+`.rvenvlib` is the venv's own half: rig's files, kept out of the project
+library so that `.rvenv/lib` holds nothing but the project's packages. It
+holds a single library, containing only the shim package, and it is the
+only tracked piece of the whole scheme. `.rvenv` itself holds nothing
+tracked, so it is fully disposable, `rm -rf .rvenv` and `sync` rebuilds it.
+The `.gitignore` block is one line, `/.rvenv/`.
+
+`rvenv.cfg` is the `pyvenv.cfg` analog: R packages are ABI-tied to R minor
+version + platform + arch, and activation validates this and a mismatch is
+a hard error.
+
+### Three activation layers, no project `.Rprofile`
+
+1. **Process activation (shell use).**
+
+   `.rvenv/bin/R` is a wrapper script (not a symlink) that exports
+   `R_LIBS_USER`, clears `R_LIBS`, points `R_LIBS_SITE` at a nonexistent
+   path, sets `R_REPOSITORIES` at a venv-owned repositories file, then
+   execs the real R by absolute path. A symlink alone would resolve
+   `R_HOME` correctly but carry no environment, letting the user level
+   package library leak in. The wrapper also pins the exact R the venv was
+   built against.
+
+   `.rvenv/bin/activate` (with `activate.fish`, `activate.csh`, and
+   `Activate.ps1` variants) is the sourced-shell alternative to the
+   wrapper: it exports the same environment variables into the current
+   shell and prepends `.rvenv/bin` to `PATH`, so plain `R`/`Rscript`
+   resolve to the venv without invoking the wrapper explicitly.
+
+2. **Implicit activation (scripts/CI), `rig run`.**
+
+   `rig run script.R` walks up from the working directory, finds `.rvenv`,
+   syncs it if stale, and execs with the right environment, no sourcing, no
+   shell state, correct in CI and Makefiles. This is the intended default,
+   `activate` is the compatibility path for interactive shells.
+
+3. **In-session activation (IDEs).**
+
+   IDEs start R directly, with no wrapper and no `PATH` interception
+   available. Instead of a project `.Rprofile` (rejected, since it causes
+   issues for renv), this proposal uses a tracked project `.Renviron` file
+   plus a small R package, `rvenv`, loaded via `R_DEFAULT_PACKAGES`:
+
+    ```
+    # .Renviron (tracked, relative paths)
+    RVENV_R_LIBS_USER=${R_LIBS_USER}
+    R_LIBS_USER=.rvenvlib
+    R_DEFAULT_PACKAGES=rvenv,datasets,utils,grDevices,graphics,stats,methods
+    ```
+
+   This works because R reads `.Renviron` before it reads `Rprofile.site`
+   or `.Rprofile`, so `R_LIBS_USER` is set before any package is loaded,
+   and the shim package is loaded first, before any other package.
+
+   `R_LIBS_USER` here names the venv's own library, `.rvenvlib`, not
+   the project library: it only has to get R far enough to load the shim
+   package, which is the one library that is guaranteed to be there in a
+   fresh clone. Pointing R at the project library is the shim's job.
+   `RVENV_R_LIBS_USER` records the value the R installation had set, before
+   `.Renviron` overwrites it, for the not-yet-synced case below.
+
+   Starting R with `--vanilla` or `--no-environ`, or setting
+   `R_ENVIRON_USER` to point elsewhere, skips reading `.Renviron`
+   entirely, so this in-session activation does not run. This is a known
+   escape hatch, not a bug: those flags exist to bypass environment/profile
+   setup, and a user reaching for them intends to opt out.
+
+   The shim package's `.onLoad` is split across two files, so that fixes to
+   the activation logic reach already-`init`'ed projects on their next
+   `sync`, with no `rig proj init` or `rig` upgrade required:
+
+   - `.onLoad` itself, in the committed shim package, always restores the
+     user's real `~/.Renviron` first (un-shadowing it). It is otherwise kept
+     to the one thing that has to work even before a project has ever been
+     synced: if `.rvenv/lib` does not exist yet, there is nothing to
+     activate, and leaving `R_LIBS_USER` at `.rvenvlib` would leave the
+     session with rig's own directory as its user library, so
+     `install.packages()` would write there. So it restores `R_LIBS_USER`
+     and `.libPaths()` to what a session outside the project would have
+     had, using the recorded `RVENV_R_LIBS_USER` (expanded with R's own
+     `%`-spec expander, since `.Renviron` files are read before R expands
+     those), and only prints the sync reminder.
+   - If `.rvenv/lib` does exist, `.onLoad` `source()`s `.rvenv/onload.R`,
+     which `sync` writes fresh every time, `local = TRUE` so it runs in
+     `.onLoad`'s own frame and reuses its locals. This is where the rest of
+     activation lives: it backs off the same way as an unsynced project (an
+     R-version mismatch between the project library and the running R is
+     treated as binary-incompatible, not merely stale), otherwise sets
+     `R_LIBS_USER` to the project library, `.rvenv/lib`, as an absolute
+     path, via `Sys.setenv()` (not `options()`, since `options()` set
+     inside `.onLoad` does not propagate to children), appends the shared
+     dev-tool library (`tools-lib` in `rvenv.cfg`, resolved once by `sync`,
+     not derived by the shim itself, since by the time R starts under
+     `rig run`'s wrapper the R installation's own default user library is
+     already gone), makes the result `.libPaths()[1]`, and prints a
+     "venv not synced" message if the lock file's copy in
+     `.rvenv/lib/.synced` does not match `rproj.lock`. Resolving the
+     project library's path to an absolute one is what makes child
+     processes started from a subdirectory (callr, parallel, `R CMD`,
+     `Rscript`) use the same library: they inherit the environment
+     variable, not the shim's `.libPaths()` call.
+
+   The shim package must be **there on a fresh clone**, before anything is
+   installed: if `R_DEFAULT_PACKAGES=rvenv,...` names a package that does
+   not exist, R prints its own unhelpful "package ... was not found"
+   warning instead of the friendly sync reminder, with no way to intercept
+   it. So `rig proj init` writes it into `.rvenvlib/rvenv` and it is
+   committed, rather than `sync` installing it.
+
+   `init` writes it *without running R*: the project's R may not be
+   installed yet, and it may be an R that rig does not manage. So the shim
+   is a **fake installed package**, a directory that looks like the result
+   of `R CMD INSTALL` but is only files embedded in the `rig` binary:
+   `DESCRIPTION`, `NAMESPACE`, `LICENSE`, plain `R/rvenv` source (no
+   lazy-load database) and a `Meta/package.rds` generated at rig build
+   time. Nothing in it is tied to an R version except two strings in
+   `package.rds`, so the same committed directory loads on every R the
+   project may be opened with: `Built$R` is stamped `4.0.0` (below that,
+   `loadNamespace()` refuses to load the package at all), `Built$Platform`
+   is empty (which is what keeps the "built for a different platform"
+   check quiet on Windows), and the file is serialized in format 2, which
+   R < 3.5.0 can still read. Verified to load on R 3.4.4 through 4.6.1.
+
+### Fit with `rig`
+
+This folds into the existing `rig proj` namespace rather than a new
+`rig venv` verb, since `rig proj` already parses manifests, solves, and
+deploys. A venv is that same machinery pointed at `.rvenv/lib`, plus the
+activation layers above:
+
+- `rig proj lock` writes `rproj.lock` (TOML), an array of
+  per-`(R version, platform)` targets.
+- `rig proj sync` reads `rproj.lock`, creates the project library
+  `.rvenv/lib` and installs the matching target into it, resolving and
+  installing the lock file's named R version first if it is missing.
+- `rig proj init` writes the tracked part of the layout up front
+  (`.Renviron`, the `.gitignore` block, the shim package in
+  `.rvenvlib`).
+- `rig run <file.R>` walks up from the working directory for a project,
+  syncs it if stale, and runs it with `.rvenv/bin/R` instead of the default
+  R, the `uv run` equivalent.
+
+## Implementation
+
+Support for rvenv is implemented in [`rig`](https://github.com/r-lib/rig),
+version 0.10.0 (currently beta).
+
+1. `rig proj init` writes the tracked part of the layout (the shim package
+   in `.rvenvlib`), `.Renviron`, and the `.gitignore` block. The shim
+   package files are embedded in the `rig` binary, so no R is needed to
+   write them.
+1. `rig proj sync` creating the full environment, not just the library:
+   Writes `rvenv.cfg`, `onload.R` (the machine-specific rest of the shim
+   package's `.onLoad()`, sourced by the committed part), `etc/repositories`,
+   the `bin/R`/`bin/Rscript` wrappers, and sh/bash/zsh/csh/fish/cmd/PowerShell
+   activation scripts from one shared list of environment variables.
+
+   On Windows `rig proj sync` creates `.exe`-shims that carry the
+   environment variables and the path of the required R version.
+1. `rig run` uses the project environment.
+
+## Backwards compatibility
+
+This is the first version of `.rvenv`, so there is no backwards
+compatibility to maintain.
+
+`rig proj import` helps with migrating existing renv and `DESCRIPTION`
+based projects into `.rvenv`.
+
+## How to teach
+
+`rig proj init` would be taught as the equivalent of
+`python -m venv`/`uv venv`, and `rig run`/`rig proj sync` as the equivalent
+of `uv run`/`uv sync`. The three activation layers should be taught in
+order of preference: `rig run` and other implicit, non-interactive uses
+first (no shell state to manage, correct in CI), the shell wrapper
+(`source .rvenv/bin/activate`) second for interactive use, and the IDE
+`.Renviron`/shim mechanism documented separately as "how IDEs pick this up
+automatically," since most users will never need to think about it
+directly.
+
+## Open issues
+
+None at this point.
+
+## Unresolved questions
+
+None at this point.
