@@ -197,7 +197,7 @@ pkgdown  = "*"
 asciicast = "*"
 
 [dependency-groups.dev]                   # → Config/Needs/dev
-include-groups = ["test", "doc"]          # reserved key: pull in other groups
+include-groups = ["test", "website"]      # reserved key: pull in other groups
 devtools = "*"
 lintr    = "*"
 
@@ -306,7 +306,7 @@ Support for `rproj.toml` is implemented in
 [`rig`](https://github.com/r-lib/rig), version 0.10.0 (currently beta).
 
 1.  `rig proj init` writes a minimal `rproj.toml` skeleton.
-2.  `rig proj import` creates `rproj.toml` from a `DESCRIPRION` file.
+2.  `rig proj import` creates `rproj.toml` from a `DESCRIPTION` file.
 3.  `rig proj deps`/`tree`/`lock`/`sync` read and interpret
     `rproj.toml`, including version constraints.
 4.  `rig run` support for `[[bin]]` entries.
@@ -314,14 +314,10 @@ Support for `rproj.toml` is implemented in
     dependency versions).
 
 Currently the following features are missing from the rig
-implementation: 1. `git`, `url` and `path` sources in `[dependencies]`
-and other dependency groups. 1. The resolution and installation of
-optional dependencies. 1. Custom repositories for dependencies. Only
-CRAN from PPM (Posit Package Manager) is supported currently. 1.
-Round-trip fidelity: `rig proj add` and similar commands currently
-rewrite `rproj.toml` in full, dropping comments, custom formatting, and
-any `[tool.*]` or other sections `rig` doesn’t recognize. Fixing this is
-required for `[tool.*]` to be usable in practice.
+implementation: 1. `path` sources in `[dependencies]` and other
+dependency groups. 1. Custom repositories for the project. Only PPM’s
+CRAN repository is supported currently. 1. Per dependency repository
+pins are not supported.
 
 ## Backwards compatibility
 
