@@ -263,18 +263,4 @@ None at this point.
 
 ## Unresolved questions
 
-1.  It is unclear how to handle packages needed for development. E.g.
-    devtools, roxygen2, usethis, etc. R packages needed by the VS Code R
-    extension is another use case that needs packages for development,
-    the languageserver package and the sess package that comes with the
-    extension, plus their dependencies.
-
-    Where should these be installed? It is not ideal to install them
-    into the project library because they might reflect developer
-    preferences rather than the project’s needs. It is also not ideal to
-    install them into the system library, because that makes it hard to
-    run R with only the system library available (e.g. in
-    `R CMD check`).
-
-    Whose job is it to manage these development packages? Should
-    `rig proj sync` install them? Maybe.
+None at this point.
