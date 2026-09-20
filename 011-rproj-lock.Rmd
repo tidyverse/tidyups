@@ -12,14 +12,9 @@ output: github_document
 
 ## Abstract
 
-R has no lock file format. `renv.lock` is the closest thing, but it
-records only versions and hashes, not enough to reproduce a solve:
-which source or binary build was picked, or the exact URL and cache
-location of every artifact.
-
 This tidyup proposes `rproj.lock`, a TOML lock file that resolves an
-`rproj.toml` manifest to a concrete, fully reproducible set of package
-versions and builds for one `(R version, platform)` target, and
+`rproj.toml` manifest to a concrete, fully reproducible sets of package
+versions and builds for multiple `(R version, platform)` targets, and
 specifies how `rig` writes and consumes it (`rig proj lock`/`sync`).
 
 ## Motivation
@@ -62,11 +57,19 @@ Key design decisions:
 
 - **One file, an array of targets.**
 
-  `[[targets]]` is keyed by `r_version` + `platform`. `rig proj lock`
-  currently writes one target per invocation. `rig proj sync` installs
-  the target matching the running machine. Multiple targets in one file
-  (cross-platform lock files, mirroring `uv.lock`'s per-platform
-  wheels) are anticipated but not implemented yet.
+  `[[targets]]` is keyed by `r_version` + `platform`. By default `rig
+  proj lock` solves for this machine plus three other common platforms
+  (macOS arm64, Windows x86_64, GNU Linux x86_64).
+
+- **A recorded fingerprint of what each target was solved against.**
+
+  `[[targets.direct_dependencies]]` records one entry per manifest
+  direct dependency this target was solved against (`name` and
+  `constraint`, the latter formatted the same way `rproj.toml` itself
+  writes a version requirement), filled in after the solve. It names
+  only the manifest's own roots, not the full transitive `packages`
+  list, so it changes only when `rproj.toml`'s own dependencies
+  change, not when a transitive dependency's version moves.
 
 - **Every resolved package carries what installing it needs, nothing
   more.**
@@ -80,12 +83,7 @@ Key design decisions:
   `[dependency-groups.*]` table, e.g. `"test"`) that need the package.
   `groups` is what lets `rig proj sync --no-dev` decide what to
   install without re-solving: it filters `[[targets.packages]]` down
-  to entries whose `groups` contains `"main"`. An earlier draft also
-  carried fields `pak`'s own lockfile schema used (a manifest ref
-  distinct from the package name, direct-vs-transitive, license,
-  install args, system requirements); none of them are read by
-  anything `rig` does with the lock file, so they were cut before the
-  format shipped.
+  to entries whose `groups` contains `"main"`.
 
   Base packages (`utils`, `methods`, ...) and R itself are not
   resolved as packages: a manifest dependency on one of them does not
@@ -103,9 +101,11 @@ Key design decisions:
 - **Metadata carries repository-specific provenance.**
 
   `[targets.packages.metadata]` is an open table for fields a
-  repository publishes that don't fit the fixed schema, e.g. CRAN's
-  `RemoteHash`. This mirrors `DESCRIPTION`'s own `Remotes`-adjacent
-  metadata fields rather than inventing a new provenance format.
+  repository publishes that don't fit the fixed schema, e.g.
+  `RemoteHash`. `rig proj sync` writes each entry into the installed
+  package's `DESCRIPTION`, mirroring how `remotes`/`pak` record
+  `Remotes`-adjacent provenance fields today, rather than inventing a
+  new format.
 
 ### A full example
 
@@ -114,11 +114,15 @@ dependency with its own dependency and a package's repository
 metadata:
 
 ``` toml
-version = 3
+version = 4
 
 [[targets]]
 r_version = "4.1"
 platform = "macos-arm64"
+
+[[targets.direct_dependencies]]
+name = "openssl"
+constraint = ">= 2.0.0"
 
 [[targets.packages]]
 package = "openssl"
@@ -143,6 +147,22 @@ metadata = { RemoteHash = "6c2106a74c44a748f2cea795d9686e27a0058a90debcfd8558b62
 groups = ["main"]
 ```
 
+### Field reference (`[[targets]]`)
+
+| Field | Meaning |
+|----|----|
+| `r_version` | The R version this target was solved for. |
+| `platform` | The target's platform, e.g. `"macos-arm64"`. |
+| `direct_dependencies` | Fingerprint of the manifest's direct dependencies this target was solved against (name + version constraint), used to check whether the target still satisfies `rproj.toml` without re-solving. |
+| `packages` | The solved packages, one entry per installable dependency (direct or transitive). |
+
+### Field reference (`[[targets.direct_dependencies]]`)
+
+| Field | Meaning |
+|----|----|
+| `name` | A manifest direct dependency's name. |
+| `constraint` | Its version requirement, formatted the same way as in `rproj.toml`, e.g. `">= 2.0.0"` or `"*"`. |
+
 ### Field reference (`[[targets.packages]]`)
 
 | Field | Meaning |
@@ -154,7 +174,7 @@ groups = ["main"]
 | `dependencies` | The package's own runtime dependency names, recorded so the graph can be re-verified without re-solving. |
 | `sources` | The URL(s) the package was resolved from. |
 | `target` | The cache-relative path the artifact is (or will be) stored at, unique per build. |
-| `metadata` | Open table for repository-specific provenance, e.g. CRAN's `RemoteHash`. |
+| `metadata` | Open table of repository-specific provenance fields, e.g. `RemoteHash`. `rig proj sync` writes these into the installed package's `DESCRIPTION`. |
 | `groups` | Dependency group(s) that need this package: `"main"` for a hard dependency, plus every `[dependency-groups.*]` name that (transitively) needs it. |
 
 ## Implementation
@@ -197,10 +217,7 @@ None known at this point.
 
 ## Unresolved questions
 
-- Multiple `[[targets]]` per lock file (cross-platform solves in one
-  file) is anticipated by the schema but not yet implemented. Should
-  `rig proj lock` gain a flag to solve and append several targets at
-  once, the way `uv lock` handles multi-platform resolution?
+None known at this point.
 
 ## Alternatives
 
