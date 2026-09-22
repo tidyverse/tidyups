@@ -1,142 +1,110 @@
 
 # Tidyup 9: `rproj.toml`, a modern project & package manifest for R
 
-**Champion**: Gábor Csárdi
-
-**Co-champion**: TBD
-
-**Status**: Draft
+**Champion**: Gábor Csárdi<br> **Co-champion**: TBD<br> **Status**:
+Draft
 
 ## Abstract
 
 R has one native way to declare a project’s requirements: the
-`DESCRIPTION` (DCF) file. It is package-centric and has real
-deficiencies: weak version-constraint syntax, dependency classes
-(`Depends`/`Imports`/`Suggests`/`Enhances`) that don’t map cleanly to
-project needs, no way to declare a package’s *source* or repository
-priority, no dependency groups, no workspaces, and no runnable entry
-points.
-
-This tidyup proposes a new, clean-slate TOML manifest, `rproj.toml`,
-designed as the single authoritative source of truth for both R packages
-and projects (following cargo’s model), and specifies how tools (like
+`DESCRIPTION` (DCF) file. This tidyup proposes a new, clean-slate TOML
+manifest, `rproj.toml`, designed as the single authoritative source of
+truth for both R packages and projects, and specifies how tools (like
 `rig`) read it, resolve dependencies against it, and can generate a
 valid `DESCRIPTION` as a build artifact. `rproj.toml`’s main goals are:
 
-1.  Everything `DESCRIPTION` can express.
-2.  A flexible version-constraint dialect.
-3.  Optional dependencies on two axes: published extras and local dev
+1.  Suitable for packages and projects.
+2.  Everything `DESCRIPTION` can express.
+3.  A flexible version-constraint dialect.
+4.  Optional dependencies on two axes: published extras and local dev
     groups.
-4.  Cargo-style workspaces.
-5.  Declared binaries/scripts.
-6.  A `[tool.*]` namespace for other tools’ config, analogous to
-    `pyproject.toml`.
+5.  Cargo-style workspaces.
+6.  Declared binaries/scripts.
+7.  A `[tool.*]` namespace for other tools’ config.
 
 ## Motivation
 
 `DESCRIPTION` was designed decades ago around the needs of CRAN package
-submission. Modern R project supports needs capabilities that are hard
-to support in `DESCRIPTION`.
+submission. Modern R project support needs capabilities that are hard to
+support in `DESCRIPTION`.
 
-- **Flexible version constraints.**
+1.  **Flexible version constraints.** Only simple `>=`/`<=`/`==`
+    comparisons against a single package are possible. There is no
+    caret/tilde shorthand.
 
-  Only simple `>=`/`<=`/`==` comparisons against a single package are
-  possible. There is no caret/tilde shorthand, and combining constraints
-  is awkward.
+2.  **Dependency classes that fit project needs better.**
+    `Imports`/`Depends`/`Suggests`/`Enhances` were designed for CRAN
+    policy checks, not for expressing “this is a dev-only tool” or “this
+    is an optional feature a downstream user can opt into.”
 
-- **Dependency classes that fit project needs better.**
+3.  **Package source/repository declaration.** You cannot say “install
+    this dependency from this specific repository” or “this dependency
+    comes from this git branch” without bolting on non-standard fields.
 
-  `Imports`/`Depends`/`Suggests`/`Enhances` were designed for CRAN
-  policy checks, not for expressing “this is a dev-only tool” or “this
-  is an optional feature a downstream user can opt into.”
+4.  **Workspaces.** Multi-package repositories (monorepos) have no
+    shared manifest that lets sibling packages reference each other and
+    share dependency versions, unlike cargo workspaces or npm/pnpm
+    workspaces.
 
-- **Package source/repository declaration.**
-
-  You cannot say “install this dependency from this specific repository”
-  or “this dependency comes from this git branch” without bolting on
-  non-standard fields.
-
-- **Workspaces.**
-
-  Multi-package repositories (monorepos) have no shared manifest that
-  lets sibling packages reference each other and share dependency
-  versions, unlike cargo workspaces or npm/pnpm workspaces.
-
-- **Runnable entry points.**
-
-  There’s no declared, portable way to say “this project has a script
-  called `fetch-data` that can be run with `rig run fetch-data`.”
+5.  **Runnable entry points.** There’s no declared, portable way to say
+    “this project has a script called `fetch-data` that can be run with
+    `rig run fetch-data`.”
 
 ## Solution
 
 We propose `rproj.toml` as a new schema, borrowing ideas from cargo, uv,
 and the prior `rproj.toml` draft, but not bound to any one of them.
 `rproj.toml` becomes the file users edit. `DESCRIPTION` becomes a
-generated build artifact, analogous to how `Cargo.toml` generates a
-build manifest rather than being edited by hand alongside one.
+generated build artifact.
 
 Key design decisions:
 
-- **Authoritative manifest.**
+1.  **Authoritative manifest.** `rproj.toml` is what a user edits.
+    `DESCRIPTION` is generated from it as needed and should not be
+    hand-edited once a project has an `rproj.toml`.
 
-  `rproj.toml` is what a user edits. `DESCRIPTION` is generated from it
-  at build/check time and should not be hand-edited once a project has
-  an `rproj.toml`.
+2.  **Filename `rproj.toml`.** This matches the filename already
+    proposed for this purpose. The schema itself is new.
 
-- **Filename `rproj.toml`.**
+3.  **Two-axis optional dependencies.** `[optional-dependencies]` covers
+    *published* extras (a downstream consumer opts in,
+    e.g. `mypkg[viz]`). `[dependency-groups]` covers *local*,
+    unpublished groups (test, doc, website, dev). Both use the same
+    dependency-entry syntax as `[dependencies]`.
 
-  This matches the filename already proposed for this purpose. The
-  schema itself is new.
+4.  **Binaries as named entry-point scripts.** A `[[bin]]` table
+    declares a name, a script path, and an optional description. Tools
+    may provide functionality to execute and/or install scripts. E.g.
+    `rig run <name>` executes a script.
 
-- **Two-axis optional dependencies.**
+5.  **Bare version strings mean caret ranges.** `dplyr = "1.2.3"` is
+    equivalent to `^1.2.3`, meaning `>= 1.2.3, < 2.0.0`, including
+    zero-prefix nuances (`^0.2.3` means `>= 0.2.3, < 0.3.0`, `^0.0.3`
+    means `>= 0.0.3, < 0.0.4`). An exact pin uses `=1.2.3`. Other ranges
+    use `~`, explicit `>=`/`<`, or comma-separated AND.
 
-  `[optional-dependencies]` covers *published* extras (a downstream
-  consumer opts in, e.g. `mypkg[viz]`), analogous to Python’s extras.
-  `[dependency-groups]` covers *local*, unpublished groups (test, doc,
-  website, dev), analogous to Python dependency groups. Both use the
-  same dependency-entry syntax as`[dependencies]`.
+6.  **`[config.<name>]` and `[tool.<name>]` for other tools’ config.**
+    `[config.<name>]` (see the full example below) is for settings that
+    end up in `DESCRIPTION` as `Config/<Name>/<key>`, e.g. `roxygen2` or
+    `testthat` options R CMD check itself reads.
 
-- **Binaries as named entry-point scripts.**
+    `[tool.<name>]` is a separate, unstructured namespace `rig` never
+    reads or writes: any section under `[tool.*]` is free-form config
+    owned by some other tool. It lets one file replace several
+    tool-specific TOML files in a project.
 
-  A `[[bin]]` table declares a name, a script path, and an optional
-  description. Tools may provide functionality to execute and/or install
-  scripts. E.g. `rig run <name>` executes a script.
+    `<name>` must be a name the tool owns, to avoid collisions: a CRAN
+    package name (e.g. `[tool.lintr]`) if the tool is a CRAN package, or
+    a reverse-domain identifier the tool controls (e.g.
+    `[tool."dev.posit.air"]`) if it isn’t, such as Air or Jarl, which
+    ship as standalone binaries rather than CRAN packages.
 
-- **Bare version strings mean caret ranges (cargo semantics).**
-
-  `dplyr = "1.2.3"` is equivalent to `^1.2.3`, meaning
-  `>= 1.2.3, < 2.0.0`, including cargo’s zero-prefix nuances (`^0.2.3`
-  means `>= 0.2.3, < 0.3.0`, `^0.0.3` means `>= 0.0.3, < 0.0.4`). An
-  exact pin uses `=1.2.3`. Other ranges use `~`, explicit `>=`/`<`, or
-  comma-separated AND.
-
-- **`[tool.<name>]` for other tools’ config, distinct from
-  `[config.<name>]`.**
-
-  `[config.<name>]` (see the full example below) is for settings that
-  end up in `DESCRIPTION` as `Config/<Name>/<key>`, e.g. `roxygen2` or
-  `testthat` options R CMD check itself reads. `[tool.<name>]` is a
-  separate, unstructured namespace `rig` never reads or writes: any
-  section under `[tool.*]` is free-form config owned by some other tool,
-  the same role `[tool.ruff]`/`[tool.uv]` play in `pyproject.toml`. It
-  lets one file replace several tool-specific TOML files in a project.
-
-  As in `pyproject.toml`, `<name>` must be a name the tool owns, to
-  avoid collisions: a CRAN package name (e.g. `[tool.lintr]`) if the
-  tool is a CRAN package, or a reverse-domain identifier the tool
-  controls (e.g. `[tool."dev.posit.air"]`) if it isn’t, such as Air or
-  Jarl, which ship as standalone binaries rather than CRAN packages.
-
-- **Round-trip fidelity.**
-
-  `pyproject.toml`’s own spec doesn’t mandate this, but tools that write
-  to it in practice (poetry, uv, …) avoid clobbering sections they don’t
-  own. We propose making it a requirement here: tools that write
-  `rproj.toml` (e.g. `rig proj add`) must preserve tables, keys, and
-  comments they don’t own, including `[tool.*]` sections and anything
-  else unrecognized. A tool edits only the tables it’s responsible for
-  and leaves the rest of the file, including formatting and comments,
-  untouched.
+7.  **Round-trip fidelity.** Tools that write `rproj.toml`
+    (e.g. `rig proj add`) must preserve tables, keys, and comments they
+    don’t own, including `[tool.*]` sections and anything else
+    unrecognized. A tool edits only the tables it’s responsible for and
+    leaves the rest of the file, including formatting and comments,
+    untouched.
 
 ### A full example
 
@@ -263,22 +231,22 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 
 ### Version-constraint dialect
 
-| Manifest string | Meaning |
-|----|----|
-| `"1.2.3"` (bare) ≡ `"^1.2.3"` | caret / compatible (cargo): `>= 1.2.3, < 2.0.0` |
-| `"^0.2.3"` | `>= 0.2.3, < 0.3.0` (cargo zero-nuance) |
-| `"^0.0.3"` | `>= 0.0.3, < 0.0.4` (cargo zero-nuance) |
-| `"=1.2.3"` | exact |
-| `"~1.2.3"` | `>= 1.2.3, < 1.3.0` (tilde / patch) |
-| `">= 1.2"`, `"< 2.0"` | single bound |
-| `">= 1.0, < 2.0"` | comma = AND (multiple constraints) |
-| `"*"` or `""` | any version |
+| Manifest string               | Meaning                                 |
+|-------------------------------|-----------------------------------------|
+| `"1.2.3"` (bare) ≡ `"^1.2.3"` | caret / compatible: `>= 1.2.3, < 2.0.0` |
+| `"^0.2.3"`                    | `>= 0.2.3, < 0.3.0` (zero-nuance)       |
+| `"^0.0.3"`                    | `>= 0.0.3, < 0.0.4` (zero-nuance)       |
+| `"=1.2.3"`                    | exact                                   |
+| `"~1.2.3"`                    | `>= 1.2.3, < 1.3.0` (tilde / patch)     |
+| `">= 1.2"`, `"< 2.0"`         | single bound                            |
+| `">= 1.0, < 2.0"`             | comma = AND (multiple constraints)      |
+| `"*"` or `""`                 | any version                             |
 
 ### Dependency-class mapping (`rproj.toml` → `DESCRIPTION`)
 
 | `rproj.toml` | `DESCRIPTION` field |
 |----|----|
-| `[project].type` | `Type:` (manifest default `project` = not built, `package` → `Type: Package`) |
+| `[project].type` | `Type:` (default `project` = not built, `package`) |
 | `[dependencies]` | `Imports` |
 | dep entry `attach = true` | `Depends` |
 | dep entry `vignette-builder = true` | names it in `VignetteBuilder:` (dep itself still emitted) |
@@ -286,7 +254,7 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[linking-dependencies]` | `LinkingTo` (may also be in `[dependencies]` → merged types) |
 | `[optional-dependencies.<extra>]` | `Suggests` (also recorded as an extra) |
 | `[dependency-groups.test]` | `Suggests` (R CMD check reads them) |
-| `[dependency-groups.<other>]` (e.g. website, coverage) | `Config/Needs/<other>` |
+| `[dependency-groups.<other>]` | `Config/Needs/<other>` |
 | `[dependencies]` entry `enhances = true` | `Enhances` |
 | inline `{ git / url / path }` source | dep line **+** `Remotes:` entry |
 | `[config.<name>]` | `Config/<Name>/<key>` |
@@ -294,16 +262,16 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[description]` | verbatim fields |
 | `authors = [...]` | `Authors@R` (generated `person()` vector, incl. ORCID/ROR comments) |
 
-`DESCRIPTION` is *less* expressive than the manifest (one `Suggests`
-bucket, no groups/extras distinction), so package builds flatten extras
-and groups into `Suggests`. The manifest keeps the richer structure.
-This is intended one-way lossiness. Nothing the manifest needs is lost,
-only manifest richness that `DESCRIPTION` cannot represent.
+`DESCRIPTION` is *less* expressive than the manifest. `DESCRIPTION` has
+one `Suggests` group, no custom groups/extras distinction. So conversion
+to `DESCRIPTION` flattens extras and groups into `Suggests`. Other
+information may be lost when exporting an `rproj.toml` manifest to
+`DESCRIPTION`.
 
 ## Implementation
 
-Support for `rproj.toml` is implemented in
-[`rig`](https://github.com/r-lib/rig), version 0.10.0 (currently beta).
+Support for most of `rproj.toml` is implemented in
+[`rig`](https://github.com/r-lib/rig), version 0.10.0.
 
 1.  `rig proj init` writes a minimal `rproj.toml` skeleton.
 2.  `rig proj import` creates `rproj.toml` from a `DESCRIPTION` file.
@@ -314,21 +282,25 @@ Support for `rproj.toml` is implemented in
     dependency versions).
 
 Currently the following features are missing from the rig
-implementation: 1. `path` sources in `[dependencies]` and other
-dependency groups. 1. Custom repositories for the project. Only PPM’s
-CRAN repository is supported currently. 1. Per dependency repository
-pins are not supported.
+implementation:
+
+1.  rig does not install the local project itself, even if it is a
+    package.
+2.  `path` sources in `[dependencies]` and other dependency groups.
+3.  Custom repositories for the project. Only PPM’s CRAN repository is
+    supported currently.
+4.  Per dependency repository pins are not supported.
+5.  R projects (e.g. repositories with `rproj.toml`) are not supported
+    as dependencies.
 
 ## Backwards compatibility
 
 `rproj.toml` is additive: a package or project without one continues to
 work exactly as it does today, driven by `DESCRIPTION` alone. Adding an
 `rproj.toml` to an existing package does not require removing
-`DESCRIPTION`. `rig` treats it as a build artifact and regenerates it
-from the manifest, but nothing outside of `rig`-driven builds is broken
-by having both files present. There are no breaking changes proposed to
-`DESCRIPTION`’s own semantics, and no existing package or project is
-required to adopt `rproj.toml`.
+`DESCRIPTION`. There are no breaking changes proposed to `DESCRIPTION`’s
+own semantics, and no existing package or project is required to adopt
+`rproj.toml`.
 
 ## How to teach
 
@@ -354,9 +326,6 @@ None at this point.
 
 An alternative to a new TOML file would be to extend `DESCRIPTION`’s own
 DCF format with new fields (dependency groups, richer version
-constraints, workspace members). We rejected this because DCF’s format
-(whitespace-sensitive continuation lines, no native arrays or nested
-tables) makes expressing groups, extras, and workspaces awkward at best,
-and because CRAN policy constrains what fields can appear in a submitted
-package’s `DESCRIPTION`. A separate manifest, generating a conformant
-`DESCRIPTION` as a build step, avoids both problems.
+constraints, workspace members). We rejected this because CRAN policy
+constrains what fields can appear in a submitted package’s
+`DESCRIPTION`.
