@@ -163,8 +163,8 @@ plotly  = ">= 4.10"
 DBI       = "*"
 RPostgres = "*"
 
-# Local deps, test → Suggests, others → Config/Needs/<name>.
-[dependency-groups.test]
+# Local deps, dev → Suggests, others → Config/Needs/<name>.
+[dependency-groups.dev]
 testthat  = ">= 3.0"
 knitr     = { vignette-builder = true }   # → Suggests, VignetteBuilder
 rmarkdown = "*"
@@ -262,7 +262,7 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[dependencies].R` | `Depends: R (>= x)` |
 | `[linking-dependencies]` | `LinkingTo` (may also be in `[dependencies]` → merged types) |
 | `[optional-dependencies.<extra>]` | `Suggests` (also recorded as an extra) |
-| `[dependency-groups.test]` | `Suggests` (R CMD check reads them) |
+| `[dependency-groups.dev]` | `Suggests` (R CMD check reads them) |
 | `[dependency-groups.<other>]` | `Config/Needs/<other>` |
 | `[dependencies]` entry `enhances = true` | `Enhances` |
 | inline `{ git / url / path }` source | dep line **+** `Remotes:` entry |
