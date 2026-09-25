@@ -154,7 +154,7 @@ localpkg = { path = "../localpkg" }
 [linking-dependencies]                    # → LinkingTo (compile-time)
 Rcpp = ">= 1.0"
 
-# Published EXTRAS (consumer opts in) → Suggests.
+# Published EXTRAS (consumer opts in) → Config/Needs/Optional/<name> + Suggests
 [optional-dependencies.viz]
 ggplot2 = "*"
 plotly  = ">= 4.10"
@@ -261,7 +261,7 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | dep entry `vignette-builder = true` | names it in `VignetteBuilder:` (dep itself still emitted) |
 | `[dependencies].R` | `Depends: R (>= x)` |
 | `[linking-dependencies]` | `LinkingTo` (may also be in `[dependencies]` → merged types) |
-| `[optional-dependencies.<extra>]` | `Suggests` (also recorded as an extra) |
+| `[optional-dependencies.<extra>]` | `Config/Needs/Optional/<extra>` + `Suggests` |
 | `[dependency-groups.dev]` | `Suggests` (R CMD check reads them) |
 | `[dependency-groups.<other>]` | `Config/Needs/<other>` |
 | `[dependencies]` entry `enhances = true` | `Enhances` |
@@ -270,12 +270,6 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[tool.<name>]` | (none; free-form config for other tools, ignored by `rig`) |
 | `[description]` | verbatim fields |
 | `authors = [...]` | `Authors@R` (generated `person()` vector, incl. ORCID/ROR comments) |
-
-`DESCRIPTION` is *less* expressive than the manifest. `DESCRIPTION`
-has one `Suggests` group, no custom groups/extras distinction. So
-conversion to `DESCRIPTION` flattens extras and groups into `Suggests`.
-Other information may be lost when exporting an `rproj.toml` manifest to
-`DESCRIPTION`.
 
 ## Implementation
 
