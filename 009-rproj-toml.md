@@ -86,10 +86,10 @@ Key design decisions:
     end up in `DESCRIPTION` as `Config/<Name>/<key>`, e.g. `roxygen2` or
     `testthat` options that these packages read.
 
-    `[tool.<name>]` is a separate, unstructured namespace `rig` never
-    reads or writes: any section under `[tool.*]` is free-form config
-    owned by some other tool. It lets one file replace several
-    tool-specific TOML files in a project.
+    `[tool.<name>]` is a separate, unstructured namespace: any section
+    under `[tool.*]` is free-form config owned by one tool. `rig` reads
+    and writes only `[tool.rig]` and leaves the other sections alone. It
+    lets one file replace several tool-specific TOML files in a project.
 
     `<name>` must be a name the tool owns, to avoid collisions: a CRAN
     package name (e.g. `[tool.lintr]`) if the tool is a CRAN package, or
@@ -135,6 +135,7 @@ tidyr    = "=1.3.0"                       # exact
 readr    = "*"                            # any version
 methods  = { attach = true }              # → Depends (force attach)
 special  = { version = ">= 1.0", repository = "posit" }   # pin repo
+limma    = { version = "*", repository = "bioc" }         # Bioconductor only
 ts       = { git = "https://github.com/gaborcsardi/ts", rev = "main" }
 urlpkg   = { url = "https://ex.com/urlpkg.tar.gz" }
 localpkg = { path = "../localpkg" }
@@ -174,6 +175,10 @@ url  = "https://packagemanager.posit.co/cran/latest"
 name = "CRAN"
 url  = "https://cran.r-project.org"
 
+[[repository]]
+name    = "bioc"                          # built-in Bioconductor entry, no url
+version = "3.23"                          # pin the release, or `enabled = false`
+
 [build]
 byte-compile       = true                 # ByteCompile
 needs-compilation  = true                 # NeedsCompilation
@@ -200,6 +205,10 @@ parallel = true
 
 [description]                             # verbatim passthrough
 License_is_FOSS = "yes"                   # → License_is_FOSS: yes
+
+[tool.rig]                                # rig's own settings
+exclude-newer = "2026-06-01"              # ignore package versions published later
+prefer-binary = true                      # prefer older binaries over newer sources
 
 [tool."dev.posit.air"]                    # free-form, rig never reads/writes this
 line-length = 88
@@ -255,7 +264,8 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[dependencies]` entry `enhances = true` | `Enhances` |
 | inline `{ git / url / path }` source | dep line **+** `Remotes:` entry |
 | `[config.<name>]` | `Config/<name>/<key>` |
-| `[tool.<name>]` | (none; free-form config for other tools, ignored by `rig`) |
+| `[tool.<name>]` | (none; free-form config for tools, `rig` only reads `[tool.rig]`) |
+| `[[repository]]` | (none; used for dependency resolution only) |
 | `[description]` | verbatim fields |
 | `authors = [...]` | `Authors@R` (generated `person()` vector, incl. ORCID/ROR comments) |
 
@@ -272,13 +282,23 @@ released 0.10.0 version.)
 4.  `rig run` support for `[[bin]]` entries.
 5.  Workspace support (`[workspace]`, member resolution, shared
     dependency versions).
+6.  Bioconductor packages, from the Bioconductor release that belongs to
+    the R version. A `bioc` entry in `[[repository]]` pins the release,
+    or turns Bioconductor off. `repository = "bioc"` in a dependency
+    entry makes `rig` look up that package in Bioconductor only.
+7.  `[tool.rig]` settings: `exclude-newer` and `prefer-binary`.
+8.  Self-contained scripts: a `# /// script` comment block in an R
+    script holds a subset of `rproj.toml` (e.g. `[dependencies]`,
+    `[tool.rig]`), and `rig run` uses it to set up the script’s
+    environment.
 
 Currently the following features are missing from the rig
 implementation:
 
-1.  Custom repositories for the project. Only PPM’s CRAN repository is
-    supported currently.
-2.  Per dependency repository pins are not supported.
+1.  Custom repositories for the project. Only PPM’s CRAN and
+    Bioconductor repositories are supported currently.
+2.  Per dependency repository pins are not supported, except for
+    `repository = "bioc"`.
 3.  R projects (e.g. repositories with `rproj.toml`) are not supported
     as dependencies.
 
