@@ -10,9 +10,9 @@ R has one native way to declare a project’s requirements: the
 `DESCRIPTION` (DCF) file. This tidyup proposes a new manifest format for
 this purpose, `rproj.toml`, designed as the single authoritative source
 of truth for both R packages and projects. It also specifies how tools
-(like `rig`) read it, resolve dependencies against it, and can generate
-a valid `DESCRIPTION` as a build artifact. `rproj.toml`’s main goals
-are:
+read it and how they generate a valid `DESCRIPTION` from it as a build
+artifact. Any tool can implement it. `rig` is one implementation and
+serves as the example in this document. `rproj.toml`’s main goals are:
 
 1.  Suitable for packages and projects.
 2.  Everything `DESCRIPTION` can express.
@@ -47,8 +47,8 @@ Modern R project support needs capabilities that are hard to support in
     packages can reference each other and share dependency versions.
 
 5.  **Runnable binaries and scripts.** There’s no declared, portable way
-    to say “this project has a script called `fetch-data` that can be
-    run with `rig run fetch-data`.”
+    to say “this project has a script called `fetch-data` that a project
+    tool can run by name” (e.g. with `rig run fetch-data`).
 
 ## Solution
 
@@ -73,7 +73,9 @@ Key design decisions:
 4.  **Binaries and named entry-point scripts.** A `[[bin]]` table
     declares a name, a script path, and an optional description. Tools
     may provide functionality to execute and/or install scripts. E.g.
-    `rig run <name>` executes a script.
+    `rig run <name>` executes a script. How a script is run (with
+    `Rscript` or otherwise, from which working directory, with which
+    library) is up to the tool.
 
 5.  **Bare version strings mean caret ranges.** `dplyr = "1.2.3"` is
     equivalent to `^1.2.3`, meaning `>= 1.2.3, < 2.0.0`, including
@@ -87,9 +89,10 @@ Key design decisions:
     `testthat` options that these packages read.
 
     `[tool.<name>]` is a separate, unstructured namespace: any section
-    under `[tool.*]` is free-form config owned by one tool. `rig` reads
-    and writes only `[tool.rig]` and leaves the other sections alone. It
-    lets one file replace several tool-specific TOML files in a project.
+    under `[tool.*]` is free-form config owned by one tool. A tool reads
+    and writes only its own `[tool.<name>]` section and leaves the other
+    sections alone. E.g. `rig` only uses `[tool.rig]`. This lets one
+    file replace several tool-specific TOML files in a project.
 
     `<name>` must be a name the tool owns, to avoid collisions: a CRAN
     package name (e.g. `[tool.lintr]`) if the tool is a CRAN package, or
@@ -102,6 +105,12 @@ Key design decisions:
     unrecognized. A tool edits only the tables it’s responsible for and
     leaves the rest of the file, including formatting and comments,
     untouched.
+
+8.  **Unknown keys when reading.** A tool that reads `rproj.toml`
+    ignores `[tool.*]` sections it does not own. For unknown keys
+    elsewhere in the file it should warn rather than fail, so that files
+    written for a newer version of this specification still work with
+    older tools.
 
 ### A full example
 
@@ -163,7 +172,7 @@ pkgdown  = "*"
 asciicast = "*"
 
 [dependency-groups.tidy]                  # → Config/Needs/tidy
-include-groups = ["test", "website"]      # reserved key: pull in other groups
+include-groups = ["dev", "website"]       # reserved key: pull in other groups
 devtools = "*"
 lintr    = "*"
 
@@ -210,7 +219,7 @@ License_is_FOSS = "yes"                   # → License_is_FOSS: yes
 exclude-newer = "2026-06-01"              # ignore package versions published later
 prefer-binary = true                      # prefer older binaries over newer sources
 
-[tool."dev.posit.air"]                    # free-form, rig never reads/writes this
+[tool."dev.posit.air"]                    # free-form, owned by air, other tools leave it alone
 line-length = 88
 
 [tool."dev.posit.jarl"]
@@ -264,16 +273,46 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[dependencies]` entry `enhances = true` | `Enhances` |
 | inline `{ git / url / path }` source | dep line **+** `Remotes:` entry |
 | `[config.<name>]` | `Config/<name>/<key>` |
-| `[tool.<name>]` | (none; free-form config for tools, `rig` only reads `[tool.rig]`) |
+| `[tool.<name>]` | (none; free-form config, each tool reads only its own section) |
 | `[[repository]]` | (none; used for dependency resolution only) |
 | `[description]` | verbatim fields |
 | `authors = [...]` | `Authors@R` (generated `person()` vector, incl. ORCID/ROR comments) |
 
-## Implementation
+### Repositories
 
-Support for most of `rproj.toml` is implemented in the development
-version of [`rig`](https://github.com/r-lib/rig). (Many already in the
-released 0.10.0 version.)
+1.  `[[repository]]` entries are listed in order of precedence, the
+    first entry has the highest.
+2.  Every entry needs a `name` and a `url`, except the built-in
+    Bioconductor entry, see below.
+3.  If there are no `[[repository]]` entries, the tool picks the default
+    repositories, e.g. a CRAN mirror.
+4.  A dependency entry with `repository = "<name>"` must be installed
+    from the repository called `<name>`, and from no other repository.
+
+The name `bioc` is reserved for Bioconductor. Bioconductor is enabled by
+default, and the Bioconductor release is the one that belongs to the R
+version in use. A `[[repository]]` entry with `name = "bioc"` has no
+`url`, and it may have:
+
+- `version`, to pin a Bioconductor release, e.g. `version = "3.23"`, or
+- `enabled = false`, to turn off Bioconductor.
+
+At most one `bioc` entry is allowed. Other entries cannot have `version`
+or `enabled`.
+
+### Dependency groups
+
+`include-groups` is a reserved key in `[dependency-groups.<name>]`; it
+cannot clash with a package name, because R package names cannot contain
+`-`. It lists other groups whose dependencies are also part of this
+group. Every listed group must exist, and the includes must not form a
+cycle; tools report both as errors.
+
+## Implementations
+
+[`rig`](https://github.com/r-lib/rig) is the reference implementation.
+Support for most of `rproj.toml` is in its development version (many
+features are already in the released 0.10.0 version):
 
 1.  `rig proj init` writes a minimal `rproj.toml` skeleton.
 2.  `rig proj import` creates `rproj.toml` from a `DESCRIPTION` file.
@@ -282,18 +321,14 @@ released 0.10.0 version.)
 4.  `rig run` support for `[[bin]]` entries.
 5.  Workspace support (`[workspace]`, member resolution, shared
     dependency versions).
-6.  Bioconductor packages, from the Bioconductor release that belongs to
-    the R version. A `bioc` entry in `[[repository]]` pins the release,
-    or turns Bioconductor off. `repository = "bioc"` in a dependency
-    entry makes `rig` look up that package in Bioconductor only.
-7.  `[tool.rig]` settings: `exclude-newer` and `prefer-binary`.
-8.  Self-contained scripts: a `# /// script` comment block in an R
-    script holds a subset of `rproj.toml` (e.g. `[dependencies]`,
-    `[tool.rig]`), and `rig run` uses it to set up the script’s
-    environment.
+6.  Bioconductor packages, including the `bioc` `[[repository]]` entry
+    and `repository = "bioc"` dependency pins.
+7.  `[tool.rig]` settings: `exclude-newer` (ignore package versions
+    published after a date) and `prefer-binary` (prefer older binaries
+    over newer sources).
+8.  Self-contained scripts, with `rig run script.R`.
 
-Currently the following features are missing from the rig
-implementation:
+Currently the following features are missing from rig:
 
 1.  Custom repositories for the project. Only PPM’s CRAN and
     Bioconductor repositories are supported currently.
@@ -301,6 +336,11 @@ implementation:
     `repository = "bioc"`.
 3.  R projects (e.g. repositories with `rproj.toml`) are not supported
     as dependencies.
+
+Other tools, e.g. package installers or development tools, can implement
+all of this specification, or only part of it, e.g. only scaffolding
+`rproj.toml` or `rproj.toml` and a virtual environment (see Tidyup 10),
+or generating `DESCRIPTION` from `rproj.toml`.
 
 ## Backwards compatibility
 
@@ -315,11 +355,11 @@ own semantics, and no existing package or project is required to adopt
 
 `rproj.toml` would be taught as the modern entry point for new projects
 and packages, analogous to how `usethis::create_package()` currently
-scaffolds a `DESCRIPTION`. `rig proj init` would be the equivalent
-scaffolding command for `rproj.toml`. Existing users would not need to
-learn anything new unless they choose to adopt it. Documentation may
-frame it as an alternative, more expressive way to declare dependencies,
-not a required migration.
+scaffolds a `DESCRIPTION`. Tools would provide the equivalent
+scaffolding command for `rproj.toml`, e.g. `rig proj init`. Existing
+users would not need to learn anything new unless they choose to adopt
+it. Documentation may frame it as an alternative, more expressive way to
+declare dependencies, not a required migration.
 
 ## Open issues
 
@@ -327,7 +367,23 @@ None known at this point.
 
 ## Unresolved questions
 
-None at this point.
+1.  **The name of `[tool.rig]`.** `rig` is not a CRAN package, and `rig`
+    is not a reverse-domain identifier, so `[tool.rig]` does not follow
+    the naming rule for `[tool.<name>]`. Options: rename it (e.g.
+    `[tool."io.github.r-lib.rig"]`), allow an exception for existing
+    tools, or loosen the rule.
+
+2.  **`rproj.toml` and `DESCRIPTION` out of sync.** A package may have
+    both files. `rproj.toml` is authoritative, but it is not decided
+    what a tool should do if `DESCRIPTION` differs from the one
+    generated from `rproj.toml`: regenerate it, warn, or fail.
+
+3.  **Version constraints for R version numbers.** R package versions
+    can have two or more components, separated by `.` or `-`,
+    e.g. `1.2`, `1.2-3`, `1.2.3.9000`. The caret and tilde rules above
+    are defined for three components only. The rules for other versions
+    need to be specified, so that all tools resolve the same constraint
+    the same way.
 
 ## Alternatives
 
