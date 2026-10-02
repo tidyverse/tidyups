@@ -44,6 +44,7 @@ these work well in general, they have some pain points. In particular:
   symbolic links or copies.)
 - renv’s standard `.Rprofile` activation causes problems by shadowing
   the user’s own `.Rprofile`.
+- The renv project library has no concept of development dependencies.
 
 ## Solution
 
