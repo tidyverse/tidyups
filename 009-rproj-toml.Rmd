@@ -25,6 +25,7 @@ serves as the example in this document. `rproj.toml`'s main goals are:
    groups.
 1. Cargo-style workspaces.
 1. Declared binaries/scripts.
+1. Inline dependencies for single-file scripts.
 1. A `[tool.*]` namespace for other tools' configuration.
 
 ## Motivation
@@ -56,6 +57,11 @@ Modern R project support needs capabilities that are hard to support in
    called `fetch-data` that a project tool can run by name" (e.g. with
    `rig run fetch-data`).
 
+1. **Self-contained scripts.**
+   A single R script cannot declare the R version and the packages it
+   needs. To share a script, you either share a whole project with it, or
+   the users of the script have to install the right packages themselves.
+
 ## Solution
 
 We propose `rproj.toml` as a new schema, borrowing ideas from cargo, uv,
@@ -85,6 +91,12 @@ Key design decisions:
    install scripts. E.g. `rig run <name>` executes a script. How a script
    is run (with `Rscript` or otherwise, from which working directory,
    with which library) is up to the tool.
+
+1. **Inline script metadata.**
+   A single R script can declare its dependencies in a `# /// script`
+   comment block, in a subset of the `rproj.toml` format. This follows
+   Python's [PEP 723](https://peps.python.org/pep-0723/), which `uv run`
+   uses. See [Inline scripts](#inline-scripts) below.
 
 1. **Bare version strings mean caret ranges.**
    `dplyr = "1.2.3"` is equivalent to `^1.2.3`, meaning
@@ -318,6 +330,58 @@ contain `-`. It lists other groups whose dependencies are also part of
 this group. Every listed group must exist, and the includes must not
 form a cycle; tools report both as errors.
 
+### Inline scripts
+
+A single R script can declare what it needs in a `# /// script` comment
+block, without an `rproj.toml` file:
+
+``` r
+#!/usr/bin/env -S rig run
+# /// script
+# [dependencies]
+# R = ">= 4.4"
+# cli = "*"
+# dplyr = ">= 1.1"
+#
+# [tool.rig]
+# exclude-newer = "2026-06-01"
+# ///
+
+library(dplyr)
+cli::cli_text("Hello from {.pkg cli}!")
+```
+
+The rules for the block:
+
+1. The block starts with a `# /// script` line and ends with a `# ///`
+   line.
+1. Every line between these two lines must be a comment: either a `#`
+   alone, or a `#` followed by the content. One space after the `#` is
+   removed. The remaining text of the lines is a TOML document.
+1. A block can use `##` instead of `#`, but then every line of the block,
+   including the first and last, must start with `##`.
+1. A script can have at most one block, and the block must have a closing
+   line. Tools report both as errors.
+1. The block can be anywhere in the script, but tools that create a block
+   put it at the top, after the `#!` line, if there is one.
+
+The TOML document can have these tables, with the same meaning as in
+`rproj.toml`:
+
+- `[dependencies]`: the packages the script needs, and their version
+  constraints. `R` is the R version. A relative `path` is relative to the
+  directory of the script.
+- `[[repository]]`: package repositories.
+- `[tool.<name>]`: tool settings, e.g. `exclude-newer` in `[tool.rig]`.
+
+Any other table is an error, so typos do not go unnoticed.
+
+A tool that runs a script with a block makes sure that a suitable R
+version and the packages are available, typically in an environment of
+the script's own, separate from the user's package libraries. How and
+where it creates this environment is up to the tool. A script can also
+have a lock file, see [Tidyup 11](011-rproj-lock.md).
+
 ## Implementations
 
 [`rig`](https://github.com/r-lib/rig) is the reference implementation.
@@ -336,7 +400,9 @@ features are already in the released 0.10.0 version):
 1. `[tool.rig]` settings: `exclude-newer` (ignore package versions
    published after a date) and `prefer-binary` (prefer older binaries
    over newer sources).
-1. Self-contained scripts, with `rig run script.R`.
+1. Self-contained scripts with a `# /// script` block, with
+   `rig run script.R`. `rig proj init --script`, `rig proj add --script`
+   and `rig proj remove --script` create and edit the block.
 
 Currently the following features are missing from rig:
 

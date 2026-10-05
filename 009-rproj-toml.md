@@ -21,7 +21,8 @@ serves as the example in this document. `rproj.toml`’s main goals are:
     groups.
 5.  Cargo-style workspaces.
 6.  Declared binaries/scripts.
-7.  A `[tool.*]` namespace for other tools’ configuration.
+7.  Inline dependencies for single-file scripts.
+8.  A `[tool.*]` namespace for other tools’ configuration.
 
 ## Motivation
 
@@ -50,6 +51,11 @@ Modern R project support needs capabilities that are hard to support in
     to say “this project has a script called `fetch-data` that a project
     tool can run by name” (e.g. with `rig run fetch-data`).
 
+6.  **Self-contained scripts.** A single R script cannot declare the R
+    version and the packages it needs. To share a script, you either
+    share a whole project with it, or the users of the script have to
+    install the right packages themselves.
+
 ## Solution
 
 We propose `rproj.toml` as a new schema, borrowing ideas from cargo, uv,
@@ -77,13 +83,19 @@ Key design decisions:
     `Rscript` or otherwise, from which working directory, with which
     library) is up to the tool.
 
-5.  **Bare version strings mean caret ranges.** `dplyr = "1.2.3"` is
+5.  **Inline script metadata.** A single R script can declare its
+    dependencies in a `# /// script` comment block, in a subset of the
+    `rproj.toml` format. This follows Python’s [PEP
+    723](https://peps.python.org/pep-0723/), which `uv run` uses. See
+    [Inline scripts](#inline-scripts) below.
+
+6.  **Bare version strings mean caret ranges.** `dplyr = "1.2.3"` is
     equivalent to `^1.2.3`, meaning `>= 1.2.3, < 2.0.0`, including
     zero-prefix nuances (`^0.2.3` means `>= 0.2.3, < 0.3.0`, `^0.0.3`
     means `>= 0.0.3, < 0.0.4`). An exact pin uses `=1.2.3`. Other ranges
     use `~`, explicit `>=`/`<`, or comma-separated AND.
 
-6.  **`[config.<name>]` and `[tool.<name>]` for other tools’ config.**
+7.  **`[config.<name>]` and `[tool.<name>]` for other tools’ config.**
     `[config.<name>]` (see the full example below) is for settings that
     end up in `DESCRIPTION` as `Config/<Name>/<key>`, e.g. `roxygen2` or
     `testthat` options that these packages read.
@@ -99,14 +111,14 @@ Key design decisions:
     a reverse-domain identifier the tool controls (e.g.
     `[tool."dev.posit.air"]`).
 
-7.  **Round-trip fidelity.** Tools that write `rproj.toml`
+8.  **Round-trip fidelity.** Tools that write `rproj.toml`
     (e.g. `rig proj add`) must preserve tables, keys, and comments they
     don’t own, including `[tool.*]` sections and anything else
     unrecognized. A tool edits only the tables it’s responsible for and
     leaves the rest of the file, including formatting and comments,
     untouched.
 
-8.  **Unknown keys when reading.** A tool that reads `rproj.toml`
+9.  **Unknown keys when reading.** A tool that reads `rproj.toml`
     ignores `[tool.*]` sections it does not own. For unknown keys
     elsewhere in the file it should warn rather than fail, so that files
     written for a newer version of this specification still work with
@@ -308,6 +320,58 @@ cannot clash with a package name, because R package names cannot contain
 group. Every listed group must exist, and the includes must not form a
 cycle; tools report both as errors.
 
+### Inline scripts
+
+A single R script can declare what it needs in a `# /// script` comment
+block, without an `rproj.toml` file:
+
+``` r
+#!/usr/bin/env -S rig run
+# /// script
+# [dependencies]
+# R = ">= 4.4"
+# cli = "*"
+# dplyr = ">= 1.1"
+#
+# [tool.rig]
+# exclude-newer = "2026-06-01"
+# ///
+
+library(dplyr)
+cli::cli_text("Hello from {.pkg cli}!")
+```
+
+The rules for the block:
+
+1.  The block starts with a `# /// script` line and ends with a `# ///`
+    line.
+2.  Every line between these two lines must be a comment: either a `#`
+    alone, or a `#` followed by the content. One space after the `#` is
+    removed. The remaining text of the lines is a TOML document.
+3.  A block can use `##` instead of `#`, but then every line of the
+    block, including the first and last, must start with `##`.
+4.  A script can have at most one block, and the block must have a
+    closing line. Tools report both as errors.
+5.  The block can be anywhere in the script, but tools that create a
+    block put it at the top, after the `#!` line, if there is one.
+
+The TOML document can have these tables, with the same meaning as in
+`rproj.toml`:
+
+- `[dependencies]`: the packages the script needs, and their version
+  constraints. `R` is the R version. A relative `path` is relative to
+  the directory of the script.
+- `[[repository]]`: package repositories.
+- `[tool.<name>]`: tool settings, e.g. `exclude-newer` in `[tool.rig]`.
+
+Any other table is an error, so typos do not go unnoticed.
+
+A tool that runs a script with a block makes sure that a suitable R
+version and the packages are available, typically in an environment of
+the script’s own, separate from the user’s package libraries. How and
+where it creates this environment is up to the tool. A script can also
+have a lock file, see [Tidyup 11](011-rproj-lock.md).
+
 ## Implementations
 
 [`rig`](https://github.com/r-lib/rig) is the reference implementation.
@@ -326,7 +390,10 @@ features are already in the released 0.10.0 version):
 7.  `[tool.rig]` settings: `exclude-newer` (ignore package versions
     published after a date) and `prefer-binary` (prefer older binaries
     over newer sources).
-8.  Self-contained scripts, with `rig run script.R`.
+8.  Self-contained scripts with a `# /// script` block, with
+    `rig run script.R`. `rig proj init --script`,
+    `rig proj add --script` and `rig proj remove --script` create and
+    edit the block.
 
 Currently the following features are missing from rig:
 
