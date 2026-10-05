@@ -330,11 +330,7 @@ features are already in the released 0.10.0 version):
 
 Currently the following features are missing from rig:
 
-1.  Custom repositories for the project. Only PPM’s CRAN and
-    Bioconductor repositories are supported currently.
-2.  Per dependency repository pins are not supported, except for
-    `repository = "bioc"`.
-3.  R projects (e.g. repositories with `rproj.toml`) are not supported
+1.  R projects (e.g. repositories with `rproj.toml`) are not supported
     as dependencies.
 
 Other tools, e.g. package installers or development tools, can implement
