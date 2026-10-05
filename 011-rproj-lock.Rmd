@@ -28,7 +28,7 @@ implementation.
   The current de facto standard is `renv.lock`, which does not capture
   the full resolved state of a project's dependencies.
 
-- **`renv.lock` doesn't record enough to be safe.**
+- **`renv.lock` doesn't record enough.**
 
   It lists package name, version, and a repository, but not which
   build (source vs binary) was chosen, nor the exact download URL. Two
@@ -124,8 +124,7 @@ Key design decisions:
   list, so it changes only when `rproj.toml`'s own dependencies
   change, not when a transitive dependency's version moves.
 
-- **Every resolved package carries what installing it needs, nothing
-  more.**
+- **Enough information to reproduce the build.**
 
   Each `[[targets.packages]]` entry records the resolved version,
   whether the build is source or binary, its own dependency list (for
@@ -155,7 +154,7 @@ Key design decisions:
   produce a `[[targets.packages]]` entry. It is instead satisfied
   implicitly by the target's `r_version`.
 
-- **Binary vs source is a first-class, recorded decision.**
+- **Binary or source is recorded.**
 
   `binary = true`/`false` and `sources` (where to download it from)
   make the solver's binary-vs-source choice
@@ -177,7 +176,7 @@ Key design decisions:
   tool that writes the lock file, and different tools may write
   different fields. A reader does not need it to install a package.
 
-- **Scripts have lock files too.**
+- **Scripts can have lock files too.**
 
   A script with a `# /// script` block ([Tidyup 9](009-rproj-toml.md))
   is locked into a file named after the script, with `.lock` appended
@@ -317,7 +316,7 @@ the tool that wrote it. Tools may solve a project differently, and
 decide differently when to solve it again, but every lock file is read
 the same way:
 
-1. **Choosing a target.** A reader finds the platform of the machine,
+1. **Target choice.** A reader finds the platform of the machine,
    in the form above, and picks a target with that `platform`. If
    there is none, on a Linux machine with glibc it picks an
    `<arch>-unknown-linux-gnu` target. If there is none of those either,
