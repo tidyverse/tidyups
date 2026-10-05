@@ -279,12 +279,12 @@ metadata = { RemoteHash = "40b1d2059a76ad98db4bf80139760acf8e8bae92a8265aaaf16ac
 | `binary` | Whether `target` is a binary build (`true`) or a source tarball (`false`). |
 | `platform` | The platform the binary was built for, in the same form as the target's `platform`, or `"source"`. This is not always the target's `platform`: a target can mix binary and source packages. |
 | `dependencies` | The package's own runtime dependency names, recorded so the graph can be re-verified without re-solving. |
-| `sources` | Where to download the package from: one or more alternative URLs, tried in order, or a `git+<url>#<sha>` git commit. Empty for local packages and for the project's own package. See "Reading a lock file". |
+| `sources` | Where to install the package from: one or more alternative URLs of a package file, tried in order, a git commit, an archive with its hash, or a `file://` URL of a local package or the project's own package. See "Reading a lock file". |
 | `target` | Optional. The path the package file is (or will be) stored at, relative to the cache of the tool that wrote the lock file. The path is up to that tool, and readers may ignore it. |
 | `metadata` | Open table of provenance fields, e.g. `RemoteHash`, or `RemoteType`, `RemoteUrl`, `RemoteSha` etc. for a git or GitHub package. Its contents are up to the tool that wrote the lock file. Readers may use the fields they know, and must not need it to install the package. |
 | `groups` | Dependency group(s) that need this package: `"main"` for a hard dependency, plus every `[dependency-groups.*]` name that (transitively) needs it. |
 | `extra_groups` | The `[optional-dependencies.*]` extras that (transitively) need this package. Absent if none. |
-| `is_project` | `true` for the project's own package (`type = "package"` in `rproj.toml`), which is installed from the project directory, not downloaded. Absent otherwise. |
+| `is_project` | `true` for the project's own package (`type = "package"` in `rproj.toml`), which is installed from the project directory, not downloaded. Its `sources` is the `file://` URL of the project directory. Absent otherwise. |
 | `repository` | The repository the package comes from: `"bioc/<version>"` for a Bioconductor package, the name of the repository for a package of a CRAN-like repository. Absent for CRAN packages and for git, URL, and local packages. |
 | `system_requirements` | The package's `SystemRequirements` field, with whitespace collapsed. Only recorded for Linux targets that need it, i.e. not for macOS, Windows, and generic Linux (`<arch>-unknown-linux-gnu`) binaries. Absent if the package needs no OS packages on this target. |
 
@@ -349,12 +349,21 @@ the same way:
      as `binary` says. If there are several URLs, they are alternatives
      for the same file, and a reader tries them in order until one
      works.
-   - `git+<url>#<sha>`: a git repository and the commit to install
-     from it.
+   - `git+<url>#commit=<sha>`: a git repository and the commit to
+     install from it.
+   - `<url>#sha256=<hash>`: an archive, e.g. a `.tar.gz` or `.zip` file
+     of a package, and its SHA-256 hash. A reader checks the hash after
+     downloading the file.
+   - `file://<path>`: a package directory or file on this machine. A
+     local package and the project's own package (`is_project`) have
+     this form, e.g. `file:///home/user/mypkg/`. A reader installs the
+     package from there, it does not download or copy it.
 
-   `sources` is empty for the project's own package (`is_project`),
-   which is installed from the project directory, and for local
-   packages.
+   A git or archive source may add `&subdir=<path>`, if the package is
+   in a subdirectory of the repository or of the archive, e.g.
+   `git+https://github.com/user/repo.git#commit=3f2a...&subdir=pkg`.
+   After the `#`, a source has `key=value` pairs, separated by `&`, and
+   the values are percent-encoded, like pip's direct references.
 
 1. **Metadata.** A reader does not need `metadata` to install a
    package, and other tools may write different fields into it. A
@@ -465,14 +474,7 @@ that makes a checkout match its lock file, the same role
 
 ## Open issues
 
-1. **Local packages have no source.** `sources` is empty for a local
-   package, and its path is only recorded in `metadata`
-   (`RemoteUrl`). A reader that does not know `rig`'s fields cannot
-   install it. A `file:` URL in `sources` would fix this.
-
-1. **Git packages in a subdirectory.** `git+<url>#<sha>` cannot name a
-   subdirectory of the repository. The subdirectory is only recorded in
-   `metadata` (`RemoteSubdir`).
+None.
 
 ## Unresolved questions
 
