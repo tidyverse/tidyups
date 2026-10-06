@@ -143,6 +143,12 @@ Key design decisions:
   (`<arch>-unknown-linux-gnu`) binaries don’t need OS packages, so these
   entries leave it out.
 
+  A package that only works on Unix or only on Windows records its
+  `OS_type` field. The solve of a platform’s target leaves out the
+  packages of the other OS, but the `source` target may be installed on
+  any OS, so it keeps them, and a reader skips the ones that do not work
+  on its OS.
+
   Base packages (`utils`, `methods`, …) and R itself are not resolved as
   packages: a manifest dependency on one of them does not produce a
   `[[targets.packages]]` entry. It is instead satisfied implicitly by
@@ -281,6 +287,7 @@ metadata = { RemoteHash = "40b1d2059a76ad98db4bf80139760acf8e8bae92a8265aaaf16ac
 | `is_project` | `true` for the project’s own package (`type = "package"` in `rproj.toml`), which is installed from the project directory, not downloaded. Its `sources` is the `file://` URL of the project directory. Absent otherwise. |
 | `repository` | The repository the package comes from: `"bioc/<version>"` for a Bioconductor package, the name of the repository for a package of a CRAN-like repository. Absent for CRAN packages and for git, URL, and local packages. |
 | `system_requirements` | The package’s `SystemRequirements` field, with whitespace collapsed. Only recorded for Linux targets that need it, i.e. not for macOS, Windows, and generic Linux (`<arch>-unknown-linux-gnu`) binaries. Absent if the package needs no OS packages on this target. |
+| `os_type` | The package’s `OS_type` field, `"unix"` (macOS and Linux) or `"windows"`, if it only works on that OS. Absent otherwise. |
 
 ### Platforms
 
@@ -371,6 +378,12 @@ the same way:
     `SystemRequirements` text of the package. Mapping it to OS packages
     is up to the reader.
 
+8.  **OS type.** A reader does not install a package with
+    `os_type = "unix"` on Windows, or one with `os_type = "windows"` on
+    macOS or Linux. A reader ignores an `os_type` value it does not
+    know. Only the `source` target has packages for the other OS, the
+    solve of a platform’s target leaves them out.
+
 ## Implementations
 
 [`rig`](https://github.com/r-lib/rig) is the reference implementation.
@@ -398,7 +411,8 @@ version (and future 0.11.0 version) writes version 6, described here.
     into a project’s `.rvenv/lib` ([Tidyup
     10](010-r-virtual-environments.md)), installing the locked R version
     first if it is missing. On Linux it also installs the system
-    requirements of the packages, if it can. `--no-dev`, `--group`,
+    requirements of the packages, if it can. It skips the packages whose
+    `os_type` does not match the machine. `--no-dev`, `--group`,
     `--all-groups`, `--extra`, and `--all-extras` choose which groups to
     install.
 7.  `rig proj renv export` writes an `renv.lock` from `rproj.toml`.
