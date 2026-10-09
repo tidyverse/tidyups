@@ -94,9 +94,8 @@ Key design decisions:
 
 1. **Inline script metadata.**
    A single R script can declare its dependencies in a `# /// script`
-   comment block, in a subset of the `rproj.toml` format. This follows
-   Python's [PEP 723](https://peps.python.org/pep-0723/), which `uv run`
-   uses. See [Inline scripts](#inline-scripts) below.
+   comment block, in a subset of the `rproj.toml` format. See
+   [Inline scripts](#inline-scripts) below.
 
 1. **Bare version strings mean caret ranges.**
    `dplyr = "1.2.3"` is equivalent to `^1.2.3`, meaning
