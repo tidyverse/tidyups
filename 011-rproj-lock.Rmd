@@ -11,7 +11,7 @@ output: github_document
 ## Abstract
 
 This tidyup proposes `rproj.lock`, a TOML lock file that resolves an
-`rproj.toml` manifest to a concrete, fully reproducible sets of package
+`rproj.toml` manifest to a concrete, fully reproducible set of package
 versions and builds for multiple `(R version, platform)` targets. It
 also specifies how tools read it, so that a lock file written by one
 tool can be installed by another. `rig` is the reference
