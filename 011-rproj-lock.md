@@ -1,0 +1,501 @@
+
+# Tidyup 11: `rproj.lock`, a lock file for R projects
+
+**Champion**: Gábor Csárdi<br> **Co-champion**: TBD<br> **Status**:
+Draft
+
+## Abstract
+
+This tidyup proposes `rproj.lock`, a TOML lock file that resolves an
+`rproj.toml` manifest to a concrete, fully reproducible sets of package
+versions and builds for multiple `(R version, platform)` targets. It
+also specifies how tools read it, so that a lock file written by one
+tool can be installed by another. `rig` is the reference implementation.
+
+## Motivation
+
+- **No canonical resolved-state format.**
+
+  `DESCRIPTION` and `rproj.toml` express constraints, not a solve.
+  Reproducing an install today means re-running dependency resolution
+  against whatever CRAN snapshot happens to be live, which drifts.
+
+  The current de facto standard is `renv.lock`, which does not capture
+  the full resolved state of a project’s dependencies.
+
+- **`renv.lock` doesn’t record enough.**
+
+  It lists package name, version, and a repository, but not which build
+  (source vs binary) was chosen, nor the exact download URL. Two
+  machines reading the same `renv.lock` can legitimately fetch different
+  artifacts.
+
+  This matters for `LinkingTo` dependencies. A binary package built
+  against one version of a `LinkingTo` package (e.g. `Rcpp` or
+  `RcppArmadillo`) may not be ABI compatible with another build of it. A
+  lock file needs to record exactly which binary builds to download, so
+  that packages and their `LinkingTo` dependencies are compatible.
+
+  `renv.lock` also does not list system requirements, the system
+  libraries and tools that packages need to build or run. Without them,
+  a machine cannot install what it needs before installing the packages,
+  and finds out only when a build or a package load fails.
+
+- **No multi-platform lock files.**
+
+  Teams and CI often span macOS, Windows, and several Linux
+  distributions. The right artifact for a package, and sometimes the
+  resolved version itself, depends on the platform: binaries exist for
+  some platforms and not others, and system requirements differ. A lock
+  file written on one machine records that machine’s solve only. There
+  is no way to keep the solve for every platform a project supports in
+  one file, so collaborators on other platforms have to re-solve and may
+  end up with a different set of packages.
+
+## Solution
+
+We propose `rproj.lock`, a TOML file next to `rproj.toml`. A tool that
+solves the project writes it (e.g. `rig proj lock`), and a tool that
+installs the project reads it to set up the project’s `.rvenv` (e.g.
+`rig proj sync`, see [Tidyup 10](010-r-virtual-environments.md)). The
+two do not have to be the same tool. It is tracked in version control,
+the same role `Cargo.lock`/`uv.lock` play.
+
+Key design decisions:
+
+- **One file, an array of targets.**
+
+  `[[targets]]` is keyed by `r_version` + `platform`. Platforms have
+  standard names, see “Platforms” below. Which targets to solve for is
+  up to the tool. E.g. by default `rig proj lock` solves for this
+  machine plus three other common platforms (`aarch64-apple-darwin`,
+  `x86_64-w64-mingw32`, and `x86_64-unknown-linux-gnu`), and for a
+  `source` target, with source packages only, so the lock file also
+  works on platforms without binary packages. A reader uses the `source`
+  target only if no other target matches the machine.
+
+- **A target may record its Bioconductor release.**
+
+  A target solved against Bioconductor, besides CRAN, has an optional
+  `bioc-version` field with the Bioconductor release, and each
+  Bioconductor package has `repository = "bioc/<version>"`. A target
+  solved with CRAN only has no `bioc-version`. E.g. `rig proj lock`
+  solves from CRAN and from the Bioconductor release that belongs to the
+  target’s R version, and solves a target again if it was solved with a
+  different release.
+
+- **Tool-specific settings go into `[tool.<name>]`.**
+
+  Like in `rproj.toml`, a top level `[tool.<name>]` table holds settings
+  that belong to one tool and are not part of this format. For example
+  `rig` records the solver options that change which versions a solve
+  can pick in `[tool.rig]`: `exclude-newer` (and `exclude-newer-span`
+  for a relative cutoff like `"7 days"`) and `prefer-binary`. If these
+  options change, `rig` solves the project again.
+
+- **Each package records its repository.**
+
+  A project solves from CRAN and Bioconductor by default, and
+  `rproj.toml` may add CRAN-like repositories, turn the built-in ones
+  off, or change their order (see [Tidyup 9](009-rproj-toml.md)). Each
+  package of a CRAN-like repository has `repository = "<name>"`, and
+  each Bioconductor package `repository = "bioc/<version>"`.
+
+  `rig` also records the repositories of the solve in
+  `[[tool.rig.repository]]`, so it can tell when they change. This is
+  `rig`’s own setting, not part of the format, and other tools do not
+  need to write it. `rig proj lock` solves the project again if the
+  repositories change, or if a package comes from a different repository
+  than its pin in `rproj.toml` says.
+
+- **The direct dependencies each target was solved against.**
+
+  `[[targets.direct_dependencies]]` records one entry per manifest
+  direct dependency this target was solved against (`name` and
+  `constraint`, the latter formatted the same way `rproj.toml` itself
+  writes a version requirement), filled in after the solve. It names
+  only the manifest’s own roots, not the full transitive `packages`
+  list, so it changes only when `rproj.toml`’s own dependencies change,
+  not when a transitive dependency’s version moves.
+
+- **Enough information to reproduce the build.**
+
+  Each `[[targets.packages]]` entry records the resolved version,
+  whether the build is source or binary, its own dependency list (for
+  offline re-verification without re-solving), the exact source URL(s),
+  the repository it comes from, optionally a path in the tool’s cache
+  and tool-specific metadata, and the dependency group(s) (`"main"` for
+  a hard dependency, plus the name of any `[dependency-groups.*]` table,
+  e.g. `"dev"`) that need the package. `groups` lets a reader install
+  part of a project without re-solving: to leave out the dev
+  dependencies, it installs the entries whose `groups` contains
+  `"main"`. `extra_groups` does the same for `[optional-dependencies.*]`
+  extras.
+
+  The download URLs pin which build to install, but not the contents of
+  the file. The format has no checksum field, because not every
+  repository publishes checksums, e.g. Posit Package Manager does not. A
+  tool may record more in `metadata`.
+
+  On Linux, an entry also records the package’s `SystemRequirements`, so
+  a reader can install the OS packages it needs without downloading the
+  package first. macOS, Windows, and generic Linux
+  (`<arch>-unknown-linux-gnu`) binaries don’t need OS packages, so these
+  entries leave it out.
+
+  A package that only works on Unix or only on Windows records its
+  `OS_type` field. The solve of a platform’s target leaves out the
+  packages of the other OS, but the `source` target may be installed on
+  any OS, so it keeps them, and a reader skips the ones that do not work
+  on its OS.
+
+  Base packages (`utils`, `methods`, …) and R itself are not resolved as
+  packages: a manifest dependency on one of them does not produce a
+  `[[targets.packages]]` entry. It is instead satisfied implicitly by
+  the target’s `r_version`.
+
+- **Binary or source is recorded.**
+
+  `binary = true`/`false` and `sources` (where to download it from) make
+  the solver’s binary-vs-source choice ([Tidyup 9](009-rproj-toml.md)’s
+  “Source and binary packages”) reproducible, not just its outcome.
+
+  An entry may also have a `target`, the path of the package file in the
+  cache of the tool that wrote the lock file. The path is up to that
+  tool, and other tools may ignore it. E.g. `rig` uses the path of the
+  file in the repository, without the `contrib` parts, and adds a hash
+  of the build to the file name:
+  `bin/linux/noble-arm64/4.6/openssl_2.4.2-53152ce1.tar.gz`.
+
+- **Metadata carries tool-specific provenance.**
+
+  `[targets.packages.metadata]` is an open table for fields that don’t
+  fit the fixed schema, e.g. `RemoteHash`, or the `Remote*` fields that
+  `remotes`/`pak` record for a git package. Its contents are up to the
+  tool that writes the lock file, and different tools may write
+  different fields. A reader does not need it to install a package.
+
+- **Scripts can have lock files too.**
+
+  A script with a `# /// script` block ([Tidyup 9](009-rproj-toml.md))
+  is locked into a file named after the script, with `.lock` appended to
+  the full file name: `analysis.R.lock` for `analysis.R`. It uses the
+  same format as `rproj.lock`. A tool that runs the script installs the
+  versions its lock file names.
+
+### A full example
+
+Part of an `rproj.lock`, for a project that depends on `openssl` from
+CRAN and `limma` from Bioconductor, locked with
+`exclude-newer = "7 days"` in `rproj.toml`. It shows the recorded solver
+options and repositories, a CRAN binary with its system requirements,
+and a Bioconductor binary. The other packages and the `source` target
+are left out:
+
+``` toml
+version = 6
+
+[tool.rig]
+exclude-newer = "2026-09-25"
+exclude-newer-span = "7 days"
+
+[[tool.rig.repository]]
+name = "bioc"
+metadata = "https://ppm-bioc.r-pkg.org/%v"
+
+[[tool.rig.repository]]
+name = "cran"
+metadata = "https://ppm.r-pkg.org"
+
+[[targets]]
+r_version = "4.6"
+platform = "aarch64-unknown-linux-gnu-ubuntu-24.04"
+bioc-version = "3.23"
+
+[[targets.direct_dependencies]]
+name = "limma"
+constraint = "*"
+
+[[targets.direct_dependencies]]
+name = "openssl"
+constraint = ">= 2.0.0"
+
+[[targets.packages]]
+package = "openssl"
+version = "2.4.2"
+binary = true
+platform = "aarch64-unknown-linux-gnu-ubuntu-24.04"
+dependencies = ["askpass"]
+sources = ["https://p3m.dev/cran/2026-06-10/bin/linux/noble-arm64/4.6/src/contrib/openssl_2.4.2.tar.gz"]
+target = "bin/linux/noble-arm64/4.6/openssl_2.4.2-53152ce1.tar.gz"
+groups = ["main"]
+system_requirements = "OpenSSL >= 1.0.2"
+metadata = { RemoteHash = "1fc030ad0a008472eac7f086666a7623bdbe6d27c5fdb07b5510f56545d2f4e7" }
+
+[[targets.packages]]
+package = "limma"
+version = "3.68.5"
+binary = true
+platform = "aarch64-unknown-linux-gnu-ubuntu-24.04"
+dependencies = ["statmod"]
+sources = ["https://p3m.dev/bioconductor/__linux__/noble/2026-08-12/packages/3.23/bioc/src/contrib/limma_3.68.5.tar.gz?r_version=4.6&arch=arm64"]
+target = "bin/linux/noble-arm64/4.6/limma_3.68.5-e3bb25d9.tar.gz"
+groups = ["main"]
+repository = "bioc/3.23"
+metadata = { RemoteHash = "40b1d2059a76ad98db4bf80139760acf8e8bae92a8265aaaf16ac199831533f4" }
+```
+
+### Top level fields
+
+| Field | Meaning |
+|----|----|
+| `version` | The lock file format version, currently 6. See “Reading a lock file” for what a reader does with other versions. |
+| `tool.<name>` | Settings of one tool, not part of this format. E.g. `rig` writes its solver options into `[tool.rig]`, and the repositories of the solve into `[[tool.rig.repository]]`. |
+| `targets` | The solved targets. |
+
+### `[[targets]]` fields
+
+| Field | Meaning |
+|----|----|
+| `r_version` | The R version this target was solved for, `"x.y"` or `"x.y.z"`. See “Reading a lock file” for how it matches an R installation. |
+| `platform` | The target’s platform, e.g. `"aarch64-unknown-linux-gnu-ubuntu-24.04"`, or `"source"` for source packages only. See “Platforms”. |
+| `bioc-version` | Optional. The Bioconductor release this target was solved with, besides CRAN, e.g. `"3.23"`. Absent if it was solved with CRAN only. |
+| `direct_dependencies` | The manifest’s direct dependencies this target was solved against (name + version constraint), used to check whether the target still satisfies `rproj.toml` without re-solving. |
+| `packages` | The solved packages, one entry per installable dependency (direct or transitive). |
+
+### `[[targets.direct_dependencies]]` fields
+
+| Field | Meaning |
+|----|----|
+| `name` | A manifest direct dependency’s name. |
+| `constraint` | Its version requirement, formatted the same way as in `rproj.toml`, e.g. `">= 2.0.0"` or `"*"`. |
+
+### `[[targets.packages]]` fields
+
+| Field | Meaning |
+|----|----|
+| `package` | The resolved package name. |
+| `version` | The resolved version. |
+| `binary` | Whether `target` is a binary build (`true`) or a source tarball (`false`). |
+| `platform` | The platform the binary was built for, in the same form as the target’s `platform`, or `"source"`. This is not always the target’s `platform`: a target can mix binary and source packages. |
+| `dependencies` | The package’s own runtime dependency names, recorded so the graph can be re-verified without re-solving. |
+| `sources` | Where to install the package from: one or more alternative URLs of a package file, tried in order, a git commit, an archive with its hash, or a `file://` URL of a local package or the project’s own package. See “Reading a lock file”. |
+| `target` | Optional. The path the package file is (or will be) stored at, relative to the cache of the tool that wrote the lock file. The path is up to that tool, and readers may ignore it. |
+| `metadata` | Open table of provenance fields, e.g. `RemoteHash`, or `RemoteType`, `RemoteUrl`, `RemoteSha` etc. for a git or GitHub package. Its contents are up to the tool that wrote the lock file. Readers may use the fields they know, and must not need it to install the package. |
+| `groups` | Dependency group(s) that need this package: `"main"` for a hard dependency, plus every `[dependency-groups.*]` name that (transitively) needs it. |
+| `extra_groups` | The `[optional-dependencies.*]` extras that (transitively) need this package. Absent if none. |
+| `is_project` | `true` for the project’s own package (`type = "package"` in `rproj.toml`), which is installed from the project directory, not downloaded. Its `sources` is the `file://` URL of the project directory. Absent otherwise. |
+| `repository` | The repository the package comes from: `"bioc/<version>"` for a Bioconductor package, the name of the repository for a package of a CRAN-like repository. Absent for CRAN packages and for git, URL, and local packages. |
+| `system_requirements` | The package’s `SystemRequirements` field, with whitespace collapsed. Only recorded for Linux targets that need it, i.e. not for macOS, Windows, and generic Linux (`<arch>-unknown-linux-gnu`) binaries. Absent if the package needs no OS packages on this target. |
+| `os_type` | The package’s `OS_type` field, `"unix"` (macOS and Linux) or `"windows"`, if it only works on that OS. Absent otherwise. |
+
+### Platforms
+
+A `platform` in `rproj.lock` is `"source"` or a target triple, with
+`aarch64` or `x86_64` as the architecture:
+
+| Platform | Meaning |
+|----|----|
+| `aarch64-apple-darwin`, `x86_64-apple-darwin` | macOS. |
+| `x86_64-w64-mingw32`, `aarch64-w64-mingw32` | Windows. |
+| `x86_64-unknown-linux-gnu` | Any Linux with glibc. Binaries for this platform do not depend on the libraries of a Linux distribution. |
+| `x86_64-unknown-linux-gnu-<distro>-<version>` | A specific Linux distribution and release, e.g. `ubuntu-24.04`, `debian-12`, `rhel-9`, or `opensuse-15.6`. |
+
+`<distro>` and `<version>` name the distribution and release that the
+binaries are built for. A distribution that uses the binaries of another
+one has that one’s name, e.g. Rocky Linux 9.4 is `rhel-9`. The `aarch64`
+forms have the same meaning for ARM64 machines.
+
+A lock file only uses these spellings. Tools may accept shorter forms on
+their command line, e.g. `rig` takes `macos`, `ubuntu-24.04`, or
+`jammy-x86_64`, but they write the full form into the lock file.
+
+### Reading a lock file
+
+The tool that installs a project from `rproj.lock` does not have to be
+the tool that wrote it. Tools may solve a project differently, and
+decide differently when to solve it again, but every lock file is read
+the same way:
+
+1.  **Target choice.** A reader finds the platform of the machine, in
+    the form above, and picks a target with that `platform`. If there is
+    none, on a Linux machine with glibc it picks an
+    `<arch>-unknown-linux-gnu` target. If there is none of those either,
+    it picks the `source` target. A target for another architecture, or
+    for another Linux distribution or release, does not match. If
+    targets for several R versions match, which one to use is up to the
+    reader, e.g. `rig` uses the one for the newest R version, unless
+    `--r-version` says otherwise.
+
+2.  **Format version.** A reader refuses a lock file with a `version`
+    newer than the ones it knows. For an older `version` it either reads
+    the file, or asks the user to lock the project again.
+
+3.  **Unknown keys.** A reader ignores keys and tables it does not know,
+    including other tools’ `[tool.<name>]` tables. Adding an optional
+    field does not change `version`. A change that an older reader would
+    misread does. A tool that writes `rproj.lock` does not have to keep
+    keys it does not know, or other tools’ tables.
+
+4.  **R version.** A target matches an R installation if its `r_version`
+    is a prefix of the installation’s version, compared by components:
+    `"4.6"` matches R 4.6.0 and 4.6.1, and `"4.6.1"` matches R 4.6.1
+    only. If no installed R version matches, a reader may install one
+    that does.
+
+5.  **Sources.** A reader installs each package from `sources` alone.
+    Each entry is one of:
+
+    - An `https://` URL of a package file, a binary or a source package,
+      as `binary` says. If there are several URLs, they are alternatives
+      for the same file, and a reader tries them in order until one
+      works.
+    - `git+<url>#commit=<sha>`: a git repository and the commit to
+      install from it.
+    - `<url>#sha256=<hash>`: an archive, e.g. a `.tar.gz` or `.zip` file
+      of a package, and its SHA-256 hash. A reader checks the hash after
+      downloading the file.
+    - `file://<path>`: a package directory or file on this machine. A
+      local package and the project’s own package (`is_project`) have
+      this form, e.g. `file:///home/user/mypkg/`. A reader installs the
+      package from there, it does not download or copy it.
+
+    A git or archive source may add `&subdir=<path>`, if the package is
+    in a subdirectory of the repository or of the archive, e.g.
+    `git+https://github.com/user/repo.git#commit=3f2a...&subdir=pkg`.
+    After the `#`, a source has `key=value` pairs, separated by `&`, and
+    the values are percent-encoded, like pip’s direct references.
+
+6.  **Metadata.** A reader does not need `metadata` to install a
+    package, and other tools may write different fields into it. A
+    reader may use the fields it knows. E.g. `rig` writes `RemoteHash`,
+    `RemoteLinkingToHashes`, and the `Remote*` fields of git packages
+    into the installed package’s `DESCRIPTION`, and uses them to decide
+    whether an installed package is up to date.
+
+7.  **System requirements.** A package without `system_requirements`
+    needs no OS packages on its target. The field holds the
+    `SystemRequirements` text of the package. Mapping it to OS packages
+    is up to the reader.
+
+8.  **OS type.** A reader does not install a package with
+    `os_type = "unix"` on Windows, or one with `os_type = "windows"` on
+    macOS or Linux. A reader ignores an `os_type` value it does not
+    know. Only the `source` target has packages for the other OS, the
+    solve of a platform’s target leaves them out.
+
+## Implementations
+
+[`rig`](https://github.com/r-lib/rig) is the reference implementation.
+rig 0.10.0 supports an earlier version of the format. The development
+version (and future 0.11.0 version) writes version 6, described here.
+
+1.  `rig proj lock` reads `rproj.toml`, solves against the configured
+    repositories, and writes `rproj.lock`. It always solves every
+    dependency group and extra.
+2.  `--r-version`, `--platform`, `--add-platform`, `--prefer-binary`,
+    `--exclude-newer`, and `--no-cache` control the solve (R version,
+    target platforms, binary/version trade-off, publication date cutoff,
+    and cache freshness, respectively).
+3.  `--with-repos` and `--without-repos` add and remove repositories for
+    one run, without editing `rproj.toml`.
+4.  An existing `rproj.lock` is sticky: if it still satisfies
+    `rproj.toml`, `rig proj lock` keeps it. If `rproj.toml` changed,
+    `rig` solves again, but keeps the pinned versions that still fit.
+    `--upgrade` re-resolves everything, `--upgrade-package` only the
+    named packages.
+5.  `rig proj lock --script script.R` locks the `# /// script` block of
+    a script into `script.R.lock`, in the same format.
+    `rig run script.R` then installs the versions it names.
+6.  `rig proj sync` reads `rproj.lock` and installs the matching target
+    into a project’s `.rvenv/lib` ([Tidyup
+    10](010-r-virtual-environments.md)), installing the locked R version
+    first if it is missing. On Linux it also installs the system
+    requirements of the packages, if it can. It skips the packages whose
+    `os_type` does not match the machine. `--no-dev`, `--group`,
+    `--all-groups`, `--extra`, and `--all-extras` choose which groups to
+    install.
+7.  `rig proj renv export` writes an `renv.lock` from `rproj.toml`.
+8.  `rig proj tree` reads `rproj.lock` to print the resolved dependency
+    graph, walking `dependencies` from `rproj.toml`’s direct
+    dependencies down.
+
+### `[[tool.rig.repository]]`
+
+`rig` records the repositories of the solve in
+`[[tool.rig.repository]]`. These entries are specific to `rig` and are
+not part of the format: other tools may leave them out, and readers
+other than `rig` may ignore them. `rig` writes one entry for every
+repository the solve used, after applying `--with-repos` and
+`--without-repos`, in order of precedence, the built-in ones included.
+E.g. for a project with one extra repository:
+
+``` toml
+[[tool.rig.repository]]
+name = "rlib"
+url = "https://r-lib.r-universe.dev"
+
+[[tool.rig.repository]]
+name = "bioc"
+metadata = "https://ppm-bioc.r-pkg.org/%v"
+
+[[tool.rig.repository]]
+name = "cran"
+metadata = "https://ppm.r-pkg.org"
+```
+
+| Field | Meaning |
+|----|----|
+| `name` | The name of the repository, `"cran"` and `"bioc"` for the built-in ones. |
+| `url` | The URL of a CRAN-like repository. Absent for the built-in repositories. |
+| `metadata` | The base URL of the package metadata `rig` solves the built-in repositories from, with `%v` for the Bioconductor release. Absent for other repositories. |
+| `explicit` | `true` if the repository only serves the packages pinned to it in `rproj.toml`. Absent otherwise. |
+
+### Other tools
+
+Other tools can implement this format, by writing lock files, reading
+them, or both. A tool that only installs projects needs the field
+reference and “Reading a lock file”. It does not need to solve
+`rproj.toml` the same way `rig` does.
+
+## Backwards compatibility
+
+`rproj.lock` is new and additive. A tool may solve a project without a
+lock file when it installs it, e.g. `rig proj sync` runs `rig proj lock`
+first if the file is missing. Nothing about `DESCRIPTION` or `renv.lock`
+changes. A project can keep publishing an `renv.lock` alongside
+`rproj.lock` during a transition, e.g. with `rig proj renv export`.
+
+The top level `version` field versions the format itself, see “Reading a
+lock file”. E.g. `rig` asks the user to update `rig` if it finds a newer
+version, and to run `rig proj lock` again if it finds a version older
+than 5.
+
+## How to teach
+
+`rproj.lock` would be taught as the `Cargo.lock`/`uv.lock` analog:
+commit it, don’t hand-edit it, and run your tool’s lock command (e.g.
+`rig proj lock`) to update it after changing `rproj.toml`. The sync
+command (e.g. `rig proj sync`) should be taught as the one command that
+makes a checkout match its lock file, the same role
+`cargo build`/`uv sync` play for their ecosystems.
+
+## Open issues
+
+None.
+
+## Unresolved questions
+
+None known at this point.
+
+## Alternatives
+
+### Extending `renv.lock` instead of a new format
+
+An alternative would be to add the missing fields (binary vs source,
+download URLs, platforms) to `renv.lock` itself. We rejected this
+because `renv.lock`’s schema is renv’s own and not owned by this
+proposal, and because `renv.lock` has no notion of a manifest to resolve
+against in the first place. `rproj.lock` complements `renv.lock`
+instead: tools can still write one for tools that only understand renv’s
+format, e.g. `rig proj renv export` does.
