@@ -7,7 +7,7 @@ Draft
 ## Abstract
 
 This tidyup proposes `rproj.lock`, a TOML lock file that resolves an
-`rproj.toml` manifest to a concrete, fully reproducible sets of package
+`rproj.toml` manifest to a concrete, fully reproducible set of package
 versions and builds for multiple `(R version, platform)` targets. It
 also specifies how tools read it, so that a lock file written by one
 tool can be installed by another. `rig` is the reference implementation.
@@ -137,11 +137,9 @@ Key design decisions:
   repository publishes checksums, e.g. Posit Package Manager does not. A
   tool may record more in `metadata`.
 
-  On Linux, an entry also records the package’s `SystemRequirements`, so
-  a reader can install the OS packages it needs without downloading the
-  package first. macOS, Windows, and generic Linux
-  (`<arch>-unknown-linux-gnu`) binaries don’t need OS packages, so these
-  entries leave it out.
+  An entry may record the package’s `SystemRequirements`, so a reader
+  can install the OS packages it needs without downloading the package
+  first. This is optional and typically not needed on macOS and Windows.
 
   A package that only works on Unix or only on Windows records its
   `OS_type` field. The solve of a platform’s target leaves out the
@@ -298,7 +296,7 @@ A `platform` in `rproj.lock` is `"source"` or a target triple, with
 |----|----|
 | `aarch64-apple-darwin`, `x86_64-apple-darwin` | macOS. |
 | `x86_64-w64-mingw32`, `aarch64-w64-mingw32` | Windows. |
-| `x86_64-unknown-linux-gnu` | Any Linux with glibc. Binaries for this platform do not depend on the libraries of a Linux distribution. |
+| `x86_64-unknown-linux-gnu` | Any x86_64 Linux with glibc. Binaries for this platform do not depend on the libraries of a Linux distribution. |
 | `x86_64-unknown-linux-gnu-<distro>-<version>` | A specific Linux distribution and release, e.g. `ubuntu-24.04`, `debian-12`, `rhel-9`, or `opensuse-15.6`. |
 
 `<distro>` and `<version>` name the distribution and release that the
@@ -360,11 +358,14 @@ the same way:
       this form, e.g. `file:///home/user/mypkg/`. A reader installs the
       package from there, it does not download or copy it.
 
-    A git or archive source may add `&subdir=<path>`, if the package is
-    in a subdirectory of the repository or of the archive, e.g.
-    `git+https://github.com/user/repo.git#commit=3f2a...&subdir=pkg`.
-    After the `#`, a source has `key=value` pairs, separated by `&`, and
-    the values are percent-encoded, like pip’s direct references.
+    A git, archive or `file://` source may add `subdir=<path>`, if the
+    package is in a subdirectory of the repository, of the archive, or
+    of the local directory or file, e.g.
+    `git+https://github.com/user/repo.git#commit=3f2a...&subdir=pkg`,
+    `https://example.com/pkgs.tar.gz#sha256=abcd...&subdir=pkg`, or
+    `file:///home/user/pkgs.tar.gz#subdir=pkg`. After the `#`, a source
+    has `key=value` pairs, separated by `&`, and the values are
+    percent-encoded, like pip’s direct references.
 
 6.  **Metadata.** A reader does not need `metadata` to install a
     package, and other tools may write different fields into it. A

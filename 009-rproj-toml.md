@@ -19,7 +19,8 @@ serves as the example in this document. `rproj.toml`’s main goals are:
 3.  A flexible version-constraint dialect.
 4.  Optional dependencies on two axes: published extras and local dev
     groups.
-5.  Cargo-style workspaces.
+5.  Cargo-style workspaces to allow multiple projects within one
+    repository.
 6.  Declared binaries/scripts.
 7.  Inline dependencies for single-file scripts.
 8.  A `[tool.*]` namespace for other tools’ configuration.
@@ -58,8 +59,8 @@ Modern R project support needs capabilities that are hard to support in
 
 ## Solution
 
-We propose `rproj.toml` as a new schema, borrowing ideas from cargo, uv,
-and the prior `rproj.toml` draft, but not bound to any one of them.
+We propose `rproj.toml` as a new schema, borrowing ideas from cargo and
+uv, but not bound to any one of them.
 
 Key design decisions:
 
@@ -71,7 +72,7 @@ Key design decisions:
     proposed for this purpose. The schema itself is new.
 
 3.  **Two-axis optional dependencies.** `[optional-dependencies]` covers
-    extra functionality a downstream consumer opts in (e.g. with
+    extra functionality a downstream consumer opts into (e.g. with
     `mypkg[extra]`). `[dependency-groups]` covers *local*, unpublished
     groups (test, doc, website, dev). Both use the same dependency-entry
     syntax as `[dependencies]`.
@@ -147,8 +148,8 @@ bugreports = "https://github.com/me/mypkg/issues"
 
 [dependencies]                            # → Imports (the 90% case)
 R        = ">= 4.5"                       # R itself is a dep (→ Depends: R (>= 4.5))
-cli      = ">= 3.6.5"
-dplyr    = "1.1.0"                        # bare = caret → >= 1.1.0, < 2.0.0
+cli      = { workspace = true }           # version from [workspace.dependencies]
+dplyr   = "1.1.0"                        # bare = caret → >= 1.1.0, < 2.0.0
 rlang    = "~1.1.0"                       # >= 1.1.0, < 1.2.0
 tidyr    = "=1.3.0"                       # exact
 readr    = "*"                            # any version
@@ -156,6 +157,7 @@ methods  = { attach = true }              # → Depends (force attach)
 special  = { version = ">= 1.0", repository = "posit" }   # pin repo
 limma    = { version = "*", repository = "bioc" }         # Bioconductor only
 ts       = { git = "https://github.com/gaborcsardi/ts", rev = "main" }
+monopkg  = { git = "https://github.com/me/mono", subdir = "pkgs/monopkg" }
 urlpkg   = { url = "https://ex.com/urlpkg.tar.gz" }
 localpkg = { path = "../localpkg" }
 
@@ -203,6 +205,7 @@ byte-compile       = true                 # ByteCompile
 needs-compilation  = true                 # NeedsCompilation
 lazy-data          = true                 # LazyData
 biarch             = true                 # Biarch
+keep-source        = false                # KeepSource
 
 [[bin]]
 name = "fetch-data"
@@ -246,7 +249,13 @@ exclude = ["packages/experimental"]
 cli = ">= 3.6.5"
 ```
 
-Member manifests inherit shared versions with `{ workspace = true }`:
+As in Cargo, the workspace root may be a project itself, like `mypkg`
+above (Cargo calls this a root package). Or it may contain only
+`[workspace]` and `[workspace.dependencies]`, with no `[project]` or
+`[dependencies]` (Cargo calls this a virtual manifest).
+
+Member manifests, including the root project, inherit shared versions
+with `{ workspace = true }`:
 
 ``` toml
 [dependencies]
@@ -285,6 +294,7 @@ sibling = { path = "../sibling" }         # or resolves to a workspace member
 | `[config.<name>]` | `Config/<name>/<key>` |
 | `[tool.<name>]` | (none; free-form config, each tool reads only its own section) |
 | `[[repository]]` | (none; used for dependency resolution only) |
+| `[project].keywords` | (none; `DESCRIPTION` has no keywords field) |
 | `[description]` | verbatim fields |
 | `authors = [...]` | `Authors@R` (generated `person()` vector, incl. ORCID/ROR comments) |
 
@@ -309,6 +319,26 @@ version in use. A `[[repository]]` entry with `name = "bioc"` has no
 
 At most one `bioc` entry is allowed. Other entries cannot have `version`
 or `enabled`.
+
+### Dependency sources
+
+A dependency entry may name where the package comes from, instead of a
+repository. It has exactly one of these keys:
+
+- `git`: the URL of a git repository. At most one of `rev`, `branch` or
+  `tag` selects the commit; without them the tool uses the default
+  branch.
+- `url`: the URL of a package source archive (`.tar.gz`, `.tgz` or
+  `.zip`). `hash` may pin the SHA-256 checksum of the archive, in hex.
+- `path`: a local package directory or package archive file, relative to
+  the directory of `rproj.toml`.
+
+Any of these entries may also have `subdir`, the directory of the
+package within the repository, archive or directory, relative to its
+root. Use it for a package in a monorepo, or for an archive that holds
+more than one package. If `subdir` is missing, the package is at the
+root. For an archive, the package may also be in its single top-level
+directory, the usual layout of `R CMD build` tarballs.
 
 ### Dependency groups
 
@@ -343,14 +373,17 @@ The rules for the block:
 
 1.  The block starts with a `# /// script` line and ends with a `# ///`
     line.
-2.  Every line between these two lines must be a comment: either a `#`
+2.  Every line of the block, including the first and last, starts at the
+    first column, without leading whitespace. An indented `# /// script`
+    line does not start a block.
+3.  Every line between these two lines must be a comment: either a `#`
     alone, or a `#` followed by the content. One space after the `#` is
     removed. The remaining text of the lines is a TOML document.
-3.  A block can use `##` instead of `#`, but then every line of the
+4.  A block can use `##` instead of `#`, but then every line of the
     block, including the first and last, must start with `##`.
-4.  A script can have at most one block, and the block must have a
+5.  A script can have at most one block, and the block must have a
     closing line. Tools report both as errors.
-5.  The block can be anywhere in the script, but tools that create a
+6.  The block can be anywhere in the script, but tools that create a
     block put it at the top, after the `#!` line, if there is one.
 
 The TOML document can have these tables, with the same meaning as in
@@ -397,6 +430,9 @@ Currently the following features are missing from rig:
 
 1.  R projects (e.g. repositories with `rproj.toml`) are not supported
     as dependencies.
+2.  `subdir` is ignored for `path` dependencies, so a local package
+    archive must have the package at its root, or in its single
+    top-level directory.
 
 Other tools, e.g. package installers or development tools, can implement
 all of this specification, or only part of it, e.g. only scaffolding
@@ -437,7 +473,14 @@ None known at this point.
 2.  **`rproj.toml` and `DESCRIPTION` out of sync.** A package may have
     both files. `rproj.toml` is authoritative, but it is not decided
     what a tool should do if `DESCRIPTION` differs from the one
-    generated from `rproj.toml`: regenerate it, warn, or fail.
+    generated from `rproj.toml`: regenerate it, warn, or fail. Tools
+    could mark the `DESCRIPTION` files they generate. E.g. `rig` adds
+    this field:
+
+        Config/rig/note: This file was created by rig, do not edit it manually
+
+    A tool could then overwrite a marked `DESCRIPTION` without asking,
+    and warn first if the marker is missing.
 
 3.  **Version constraints for R version numbers.** R package versions
     can have two or more components, separated by `.` or `-`,
