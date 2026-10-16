@@ -72,14 +72,17 @@ files under it:
     <base>/binaries/<package>.tsv.zst
 
 The plain text files have the same content as their `.zst` counterparts.
-Clients download the compressed files in full, and use the plain text
-files to fetch only the bytes appended since their last download, see
-[Updates](#updates).
-
 The extended metadata does not replace the repository: package files are
 still downloaded from the URLs listed in the metadata, and the
 repository may still serve regular `PACKAGES` files for tools that do
 not know about this format.
+
+This format is for repositories that keep old package versions and old
+binary builds available after they publish new ones. Download URLs
+should be stable: the URL of a file should not change, and it should
+keep working for as long as the repository serves the file. This is not
+required, but it is strongly suggested, because lock files record these
+URLs.
 
 The current instances are:
 
@@ -102,7 +105,7 @@ archived or not. For CRAN this is around 200,000 records.
     License: MIT + file LICENSE
     NeedsCompilation: yes
     SHA256: 27b5e74a6b2a8264457ce8412ded40aa7b660e01894bea4bfde956bbc4b5b294
-    SHA256Original: b2b58d6dd82f5798b335e39c00591686a01fd3e94399ef898e146173e36f18f9
+    Id: b2b58d6dd82f5798b335e39c00591686a01fd3e94399ef898e146173e36f18f9
     Snapshot: 2026-04-10
     DownloadURL: https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
 
@@ -117,45 +120,39 @@ Fields copied from the package’s `DESCRIPTION` file, if present:
 Fields added by the repository, always present:
 
 - `SHA256`: the SHA-256 hash of the file at `DownloadURL`.
-- `SHA256Original`: the SHA-256 hash of the original source tarball, as
-  published by the upstream repository (CRAN or Bioconductor). This is
-  different from `SHA256` if the repository modifies the tarball before
-  serving it. P3M does: it changes the `Repository` field of the
-  `DESCRIPTION` file. `SHA256Original` identifies the upstream tarball,
-  so tools can compare it with the hash of a package installed from
-  another source. The binary indices use this hash as well.
+
+- `Id`: an identifier of the source tarball, in the same format as a
+  SHA-256 hash: 64 lowercase hexadecimal characters. Different tarballs
+  must have different ids, and the id of a tarball must not change over
+  time. The binary indices use this id as well.
+
+  A repository can use its `SHA256` field as the id. P3M uses the
+  SHA-256 hash of the original source tarball, as published by the
+  upstream repository (CRAN or Bioconductor).
+
 - `Snapshot`: the date the version first appeared in the repository, as
   `YYYY-MM-DD`.
-- `DownloadURL`: a URL of the source tarball that does not change over
-  time. For P3M it points to the snapshot of the `Snapshot` date,
-  e.g. `https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz`.
+
+- `DownloadURL`: the download URL of the source tarball. It should be a
+  stable URL, see above.
 
 Rules for readers:
 
-- Every field is on a single line, there are no continuation lines.
-
-- Records are in no particular order. The initial file is sorted, and
-  later records are appended to it, see [Updates](#updates).
+- Records are in no particular order.
 
 - The same `(Package, Version)` pair may appear more than once. This
   happens when the upstream repository replaced a tarball without
-  changing its version number. The records differ in `SHA256`,
-  `SHA256Original`, `Snapshot` and `DownloadURL`, and possibly in the
-  other fields. There are about 350 such pairs for CRAN.
+  changing its version number. The records differ in `SHA256`, `Id`,
+  `Snapshot` and `DownloadURL`, and possibly in the other fields. There
+  are about 350 such pairs for CRAN. Each of these records is valid, and
+  readers may use any of them.
 
-- Lines starting with `#` are comments, and must be skipped. The server
-  adds one after each update, with the time of the update, e.g.
-  `# 2026-10-15 08:17:46`.
+- The file may have comment lines, starting with `#`. Readers must skip
+  them.
 
-- A few very old records have dependency fields that do not parse,
-  e.g. `Depends: tcltk (butonlyfortheGUI), allotherfunctionsarestandalone)`.
+- Some records may have dependency fields that do not parse, e.g.
+  `Depends: tcltk (butonlyfortheGUI), allotherfunctionsarestandalone)`.
   Readers should skip these records, not the whole file.
-
-- Versions published before the first P3M snapshot all have
-  `Snapshot: 2017-10-10`, and a `DownloadURL` that points into
-  `src/contrib/Archive/` of that snapshot. So for these versions the
-  publication date is not known, only that it was not later than
-  2017-10-10.
 
 ### `ARCHIVEDPACKAGES`
 
@@ -176,17 +173,15 @@ published before it was archived.
     License_restricts_use: yes
     NeedsCompilation: yes
     SHA256: 5ef1de6f69ca88b8d9960b3c637d566b59d7401aa4ec1d3dc30bb248e9126c00
-    SHA256Original: fa4e3e1f74e327b185e873052f826312ed6f71cc907a49be4c1e224ace7b5286
+    Id: fa4e3e1f74e327b185e873052f826312ed6f71cc907a49be4c1e224ace7b5286
     Snapshot: 2020-03-02
     DownloadURL: https://p3m.dev/cran/2020-03-02/src/contrib/gpclib_1.5-6.tar.gz
     Archived: 2023-04-06
 
 A package is “current” if it has a record in `ALLPACKAGES` and does not
-have one in `ARCHIVEDPACKAGES`. Packages that were archived before the
-first P3M snapshot have `Archived: 2017-10-10`.
-
-`ARCHIVEDPACKAGES` is updated the same way as `ALLPACKAGES`, so it has
-comment lines, too.
+have one in `ARCHIVEDPACKAGES`. If an archived package comes back to the
+upstream repository, the repository removes its record from
+`ARCHIVEDPACKAGES`.
 
 ### `binaries/<package>.tsv.zst`
 
@@ -194,12 +189,12 @@ There is one binary index per package, a zstd-compressed, tab-separated
 file. The first line is a header with the column names, and each other
 line is one downloadable file: the source tarball or a binary build.
 
-    package version platform       arch   r_version sha256  url                                                                                       linkingto
-    cli     3.6.6   source         *      *         b2b58d… https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
-    cli     3.6.6   macos          arm64  4.6       b2b58d… https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
-    cli     3.6.6   windows        x86_64 4.6       b2b58d… https://p3m.dev/cran/2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip
-    cli     3.6.6   noble          x86_64 4.6       b2b58d… https://p3m.dev/cran/2026-04-10/bin/linux/noble-x86_64/4.6/src/contrib/cli_3.6.6.tar.gz
-    cli     3.6.6   manylinux_2_28 arm64  4.6       b2b58d… https://p3m.dev/cran/2026-04-10/bin/linux/manylinux_2_28-arm64/4.6/src/contrib/cli_3.6.6.tar.gz
+    package version platform       arch   r_version source-id url                                                                                     linkingto
+    cli     3.6.6   source         *      *         b2b58d…   https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
+    cli     3.6.6   macos          arm64  4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
+    cli     3.6.6   windows        x86_64 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip
+    cli     3.6.6   noble          x86_64 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/noble-x86_64/4.6/src/contrib/cli_3.6.6.tar.gz
+    cli     3.6.6   manylinux_2_28 arm64  4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/manylinux_2_28-arm64/4.6/src/contrib/cli_3.6.6.tar.gz
 
 Columns:
 
@@ -218,19 +213,24 @@ Columns:
 - `r_version`: `*` for source tarballs, otherwise the minor R version
   the binary was built for, e.g. `4.5`.
 
-- `sha256`: the `SHA256Original` hash of the source tarball of the
-  version, from `ALLPACKAGES`. It is the same on every row of a version.
-  It is *not* the hash of the file at `url`, so it cannot be used to
-  check a download. It identifies the upstream source the binary was
-  built from.
+- `source-id`: the `Id` of the source tarball of the version, from
+  `ALLPACKAGES`. It is the same on every row of a version. It is *not*
+  the hash of the file at `url`, so it cannot be used to check a
+  download, use `sha256` or `md5` for that. It identifies the source
+  tarball the binary was built from.
 
-- `url`: the download URL of the file, which does not change over time.
+- `url`: the download URL of the file. It should be a stable URL, see
+  above.
+
+- `sha256`: the SHA-256 hash of the file at `url`.
+
+- `md5`: the MD5 hash of the file at `url`.
 
 - `linkingto`: empty for source tarballs and for packages without
   `LinkingTo` dependencies. Otherwise the source versions of the
   `LinkingTo` dependencies the binary was built against, as a
-  comma-separated list of `<package>@<version>=<sha256>` entries, where
-  `<sha256>` is the `SHA256Original` hash of that dependency version:
+  comma-separated list of `<package>@<version>=<id>` entries, where
+  `<id>` is the `Id` of that dependency version:
 
       cpp11@0.5.4=6e0053ce…,systemfonts@1.3.2=828a1780…,textshaping@1.0.5=12209d55…
 
@@ -242,7 +242,13 @@ Columns:
 Rules for readers:
 
 - Find columns by their name in the header, not by their position. New
-  columns may be added later. The `linkingto` column is optional.
+  columns may be added later. The `linkingto`, `sha256` and `md5`
+  columns are optional. An index may have `sha256`, `md5`, both, or
+  neither.
+
+- In the `sha256` and `md5` columns a missing value is the string `NA`.
+  Clients cannot check the download of a file if both `sha256` and `md5`
+  are missing.
 
 - Several rows may have the same `version`, `platform`, `arch` and
   `r_version`. This happens when a package was rebuilt because a
@@ -251,56 +257,21 @@ Rules for readers:
   to pick the row whose `linkingto` versions match the versions it
   resolved, or fall back to the source tarball.
 
-- The binaries of a version may come from several snapshots, e.g. a
-  binary for a new R version or a new Linux distribution is added later,
-  so the date in `url` is not necessarily the `Snapshot` date of the
-  version.
-
-- The macOS URL includes the macOS version the binary was built on,
-  e.g. `sonoma-arm64` or `big-sur-x86_64`. The `platform` column is
-  `macos` for all of them.
-
 - A package without an index, e.g. a Bioconductor package in the CRAN
-  repository, returns HTTP 404.
+  repository, has no file, so an HTTP(S) server returns 404.
 
 There is no index of all binaries, and no listing of the `binaries/`
 directory. Clients download the indices of the packages they need, one
 request per package.
-
-### Updates
-
-`ALLPACKAGES` and `ARCHIVEDPACKAGES` only ever grow: new records are
-appended to the end, and existing records are not changed. The server
-serves both the compressed and the plain text files with `ETag` and
-`Accept-Ranges: bytes`.
-
-A client can update its copy cheaply:
-
-1.  On the first download, fetch the `.zst` file, parse it, and record
-    the length of the uncompressed text and a hash of its last bytes
-    (`rig` uses the last 512 bytes).
-2.  To update, send a `Range` request for the plain text file, starting
-    at the recorded length minus the size of that window.
-3.  If the server answers 416 (range not satisfiable), the file has not
-    changed. If the returned bytes start with the same bytes as before,
-    the file only grew: parse the rest. If they do not, or the server
-    ignored the `Range` header, download the `.zst` file in full.
-
-The `.zst` files are a single zstd frame, so they cannot be fetched by
-range.
-
-The binary indices are small, and are replaced, not appended to. Clients
-should revalidate them with `If-None-Match`.
-
-The files are updated about once a day. Clients should cache them for a
-day before checking for updates.
 
 ## Implementations
 
 ### Server
 
 The CRAN and Bioconductor instances are generated from P3M data and
-updated daily.
+updated daily. They use slightly different `ALLPACKAGES` keys and
+different column names in the binary tables currently, this will be
+standardized as the this specification matures.
 
 ### `rig`
 
@@ -314,26 +285,8 @@ updated daily.
   user when a package was archived;
 - picking binaries for each target of a lock file, matching `platform`,
   `arch`, `r_version` and `linkingto`;
-- recording `SHA256Original` in the lock file and in installed packages,
-  to tell whether an installed package is the same as the locked one.
-
-`rig` stores the parsed `ALLPACKAGES` and `ARCHIVEDPACKAGES` in a SQLite
-database, and each binary index in a binary cache file, so they are not
-parsed again on every run.
-
-A repository in `rig`’s configuration declares its extended metadata
-with the `metadata` field, which is the base URL. It may contain `%v`,
-which `rig` replaces with the Bioconductor version. For testing, these
-environment variables override the CRAN URLs:
-
-- `RIG_ALLPACKAGES_URL` (default
-  `https://ppm.r-pkg.org/ALLPACKAGES.zst`),
-- `RIG_ARCHIVEDPACKAGES_URL` (default
-  `https://ppm.r-pkg.org/ARCHIVEDPACKAGES.zst`),
-- `RIG_BINARIES_URL` (default `https://ppm.r-pkg.org/binaries`),
-
-and `RIG_BIOC_METADATA_URL` (default `https://ppm-bioc.r-pkg.org`)
-overrides the Bioconductor base URL.
+- recording `Id` in the lock file and in installed packages, to tell
+  whether an installed package is the same as the locked one.
 
 ## Backwards compatibility
 
@@ -342,39 +295,11 @@ under a different URL. Existing tools are not affected.
 
 ## How to teach
 
-Most users will not see these files. Tool authors can start from the
-[`ALLPACKAGES`](#allpackages) section, and from the examples, since the
-files are plain text after decompression:
-
-``` sh
-curl -s https://ppm.r-pkg.org/binaries/cli.tsv.zst | zstd -dc | head
-```
-
-## Open issues
-
-- The `SHA256` field of `ALLPACKAGES` and the `sha256` column of the
-  binary indices have different meanings: the first is the hash of the
-  file served, the second is the hash of the upstream tarball. Should
-  the column be renamed to `sha256_original`, and should the binary
-  indices also have the hash of the served file, so clients can check
-  their downloads?
+Users will not see these files.
 
 ## Unresolved questions
 
-- What happens to an `ARCHIVEDPACKAGES` record if the package comes back
-  to CRAN? Since the file is only appended to, the record stays. Readers
-  could compare the `Snapshot` date of the latest `ALLPACKAGES` record
-  with the `Archived` date, but this should be part of the
-  specification.
-
-- If a `(Package, Version)` pair appears more than once in
-  `ALLPACKAGES`, which record should readers use? The one with the
-  latest `Snapshot` date is the natural choice, but a lock file that
-  records `SHA256Original` may need the older one.
-
-- Should other repositories, e.g. R-universe, serve the same files? The
-  format does not depend on P3M, except that `Snapshot` and stable
-  download URLs need a repository that keeps old files.
+None currently.
 
 ## Alternatives
 
