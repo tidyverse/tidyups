@@ -58,6 +58,7 @@ renv, rvenv is also built in user space.
       .Renviron               # potentially tracked, IDE-activation leg
       .gitignore              # tracked, /.rvenv/
       .rvenvlib/
+        .gitignore            # potentially tracked, re-includes all of .rvenvlib
         rvenv/                # potentially tracked, minimal shim package
       .rvenv/
         lib/...               # untracked, the project library, filled by sync
@@ -73,6 +74,10 @@ the project library so that `.rvenv/lib` holds nothing but the project’s
 packages. `.renvlib` holds a single library, containing only the shim
 package. `.Renviron` and `.rvenvlib` can both be tracked. They are
 re-created by `rig proj sync` if missing.
+
+`.rvenvlib` has its own `.gitignore`, with a single `!*` rule. It
+un-ignores everything in `.rvenvlib`, so that the user’s own ignore
+rules cannot leave part of the shim package out of version control.
 
 `.rvenv` itself holds nothing tracked, so it is fully disposable,
 `rm -rf .rvenv` and `sync` rebuilds it. The `.gitignore` block is one
@@ -211,9 +216,9 @@ Support for rvenv is implemented in
 [`rig`](https://github.com/r-lib/rig), version 0.10.0.
 
 1.  `rig proj init` writes the tracked part of the layout: the shim
-    package in `.rvenvlib`, `.Renviron`, and the `.gitignore` block. The
-    shim package files are embedded in the `rig` binary, so no R is
-    needed to write them.
+    package and its `.gitignore` in `.rvenvlib`, `.Renviron`, and the
+    `.gitignore` block. The shim package files are embedded in the `rig`
+    binary, so no R is needed to write them.
 
 2.  `rig proj lock` writes `rproj.lock` (TOML), an array of
     per-`(R version, platform)` targets.
