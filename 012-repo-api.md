@@ -22,7 +22,7 @@ these files to solve and lock `rproj.toml` projects, see [Tidyup
 
 ## Motivation
 
-- **`PACKAGES` only describes the present.**
+- **`PACKAGES` only describes the latest versions.**
 
   A CRAN-like repository’s `PACKAGES` file lists the current version of
   each package. Older versions live in `src/contrib/Archive/`, which has
