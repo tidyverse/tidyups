@@ -152,6 +152,31 @@ Fields added by the repository, always present:
   work behind any host name, and relative paths also behind any proxy
   path.
 
+Fields added by the repository, if they apply to the version:
+
+- `Blocked`: set if the repository blocks the version, i.e. it
+  refuses to serve it, no matter how old it is. The value is the kind
+  of rule that blocks it: `package`, `license`, `vulnerability` or
+  `deleted`. Readers must accept other values as well.
+- `BlockedRule`: an identifier of the rule that blocks the version.
+  Its format is up to the repository.
+- `BlockedReason`: a description of the rule that blocks the version,
+  for people.
+- `BlockedUntil`: set if the version is blocked because it is too new,
+  e.g. a rule blocks versions younger than seven days. It is the time
+  the version becomes available, in RFC 3339 format, e.g.
+  `2026-04-17T00:00:00Z`. Readers compare it to the current time; the
+  version is blocked before it. A version may have both `Blocked` and
+  `BlockedUntil`, then it stays blocked after `BlockedUntil`.
+- `Vulnerabilities`: the known vulnerabilities of the version, as a
+  comma-separated list, sorted by id. Each item is a vulnerability id,
+  followed by its highest CVSS base score in parentheses, if it has
+  one, e.g. `CVE-2024-27322 (8.8), GHSA-xxxx-xxxx-xxxx`.
+
+These fields describe the repository's policy when it wrote the file.
+A version without them may still be blocked when it is downloaded, if
+the repository's rules changed since.
+
 Rules for readers:
 
 - Records are in no particular order.
