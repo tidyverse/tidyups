@@ -139,7 +139,18 @@ Fields added by the repository, always present:
 - `Snapshot`: the date the version first appeared in the repository,
   as `YYYY-MM-DD`.
 - `DownloadURL`: the download URL of the source tarball. It should
-  be a stable URL, see above.
+  be a stable URL, see above. It is one of:
+  - a full URL, e.g.
+    `https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz`,
+  - an absolute path, e.g.
+    `/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz`, or
+  - a relative path, e.g. `2026-04-10/src/contrib/cli_3.6.6.tar.gz`.
+
+  Readers resolve a path against the URL of the file that contains
+  it, as in RFC 3986: an absolute path keeps the scheme and host of
+  that URL, and a relative path may use `../`. Paths let a repository
+  work behind any host name, and relative paths also behind any proxy
+  path.
 
 Rules for readers:
 
@@ -225,7 +236,11 @@ Columns:
   used to check a download, use `sha256` or `md5` for that. It
   identifies the source tarball the binary was built from.
 - `url`: the download URL of the file. It should be a stable URL,
-  see above.
+  see above. Like `DownloadURL` in `ALLPACKAGES`, it is a full URL,
+  an absolute path or a relative path, resolved against the URL of
+  the index. The index is in `binaries/`, so a relative path starts
+  with `../` to get to the base URL, e.g.
+  `../2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip`.
 - `sha256`: the SHA-256 hash of the file at `url`.
 - `md5`: the MD5 hash of the file at `url`.
 - `linkingto`: empty for source tarballs and for packages without
