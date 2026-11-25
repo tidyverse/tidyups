@@ -65,6 +65,7 @@ these files to solve and lock `rproj.toml` projects, see [Tidyup
 A repository with extended metadata has a base URL, and serves these
 files under it:
 
+    <base>/METADATA
     <base>/ALLPACKAGES.zst
     <base>/ALLPACKAGES
     <base>/ARCHIVEDPACKAGES.zst
@@ -90,6 +91,29 @@ The current instances are:
 |----|----|
 | CRAN | `https://ppm.r-pkg.org` |
 | Bioconductor release `<v>` | `https://ppm-bioc.r-pkg.org/<v>`, e.g. `https://ppm-bioc.r-pkg.org/3.22` |
+
+### `METADATA`
+
+`METADATA` is a DCF file with a single record that describes the
+repository as a whole:
+
+    Format-Version: 1.0
+    Generated: 2026-11-24T06:00:00Z
+
+Fields:
+
+- `Format-Version`: the version of the format of the extended metadata,
+  as `<major>.<minor>`, see [Versioning](#versioning). This tidyup
+  describes version 1.0.
+- `Generated`: optional, the time the repository last wrote the files,
+  in RFC 3339 format.
+
+Readers must ignore fields they do not know. If `METADATA` is missing,
+i.e. the server returns 404, or it has no `Format-Version` field, the
+version is 0.0.
+
+`METADATA` is small and not compressed, so clients can check the version
+before they download the much larger `ALLPACKAGES.zst`.
 
 ### `ALLPACKAGES`
 
@@ -184,7 +208,10 @@ Rules for readers:
   readers may use any of them.
 
 - The file may have comment lines, starting with `#`. Readers must skip
-  them.
+  them. The first line of the file should be a comment with the format
+  version, see [Versioning](#versioning):
+
+      # Format-Version: 1.0
 
 - Some records may have dependency fields that do not parse, e.g.
   `Depends: tcltk (butonlyfortheGUI), allotherfunctionsarestandalone)`.
@@ -222,9 +249,12 @@ upstream repository, the repository removes its record from
 ### `binaries/<package>.tsv.zst`
 
 There is one binary index per package, a zstd-compressed, tab-separated
-file. The first line is a header with the column names, and each other
-line is one downloadable file: the source tarball or a binary build.
+file. It may start with comment lines, starting with `#`, the first of
+which should give the format version, see [Versioning](#versioning). The
+next line is a header with the column names, and each other line is one
+downloadable file: the source tarball or a binary build.
 
+    # Format-Version: 1.0
     package version platform       arch   r_version source-id url                                                                                     linkingto
     cli     3.6.6   source         *      *         b2b58d…   https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
     cli     3.6.6   macos          arm64  4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
@@ -281,6 +311,9 @@ Columns:
 
 Rules for readers:
 
+- Skip the comment lines, starting with `#`, at the beginning of the
+  file.
+
 - Find columns by their name in the header, not by their position. New
   columns may be added later. The `linkingto`, `sha256` and `md5`
   columns are optional. An index may have `sha256`, `md5`, both, or
@@ -304,6 +337,48 @@ There is no index of all binaries, and no listing of the `binaries/`
 directory. Clients download the indices of the packages they need, one
 request per package.
 
+### Versioning
+
+The format version has two parts, `<major>.<minor>`, both non-negative
+integers, e.g. `1.0`. Readers compare the parts as integers, so `1.10`
+is newer than `1.9`. A repository gives the version in the
+`Format-Version` field of `METADATA`, and in a
+`# Format-Version: <major>.<minor>` comment at the start of every
+`ALLPACKAGES`, `ARCHIVEDPACKAGES` and binary index file. All of these
+have the same version.
+
+A missing version means version 0.0: a missing `METADATA` file, a
+`METADATA` file without `Format-Version`, or a data file without a
+`# Format-Version` comment. Version 0.0 is the format that the P3M
+instances served before this tidyup, see
+[Implementations](#implementations). This tidyup specifies version 1.0.
+
+Changes that old readers can still read increase the minor version: new
+fields in the DCF files, new columns in the binary indices, new
+`Blocked` values. The minor version tells readers which fields and
+columns the repository knows about. E.g. if a later minor version adds a
+field, a missing field in a file of that version means that the field
+does not apply to the record, but in a file of an older version it means
+that the repository does not provide it.
+
+Changes that old readers cannot read increase the major version and
+reset the minor version to zero. The repository serves the new major
+version under a new base URL, e.g. `<base>/v2/`, so it can serve the old
+and the new versions side by side, and old clients keep working.
+
+Rules for readers:
+
+- If the major version is one they do not know, readers must refuse the
+  files.
+
+- If the minor version is newer than the one they know, readers must
+  read the files, and ignore the fields, columns and values they do not
+  know. They may warn the user.
+
+- Readers should check the version in each data file as well, not only
+  in `METADATA`, because caches may serve files from different updates
+  together.
+
 ## Implementations
 
 ### Server
@@ -311,7 +386,8 @@ request per package.
 The CRAN and Bioconductor instances are generated from P3M data and
 updated daily. They use slightly different `ALLPACKAGES` keys and
 different column names in the binary tables currently, this will be
-standardized as the this specification matures.
+standardized as the this specification matures. They do not have version
+markers yet, so they are version 0.0.
 
 ### `rig`
 
