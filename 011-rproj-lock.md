@@ -69,10 +69,10 @@ Key design decisions:
   standard names, see “Platforms” below. Which targets to solve for is
   up to the tool. E.g. by default `rig proj lock` solves for this
   machine plus three other common platforms (`aarch64-apple-darwin`,
-  `x86_64-w64-mingw32`, and `x86_64-unknown-linux-gnu`), and for a
-  `source` target, with source packages only, so the lock file also
-  works on platforms without binary packages. A reader uses the `source`
-  target only if no other target matches the machine.
+  `x86_64-w64-mingw32`, and `x86_64-unknown-linux-gnu-manylinux_2_28`),
+  and for a `source` target, with source packages only, so the lock file
+  also works on platforms without binary packages. A reader uses the
+  `source` target only if no other target matches the machine.
 
 - **A target may record its Bioconductor release.**
 
@@ -275,7 +275,7 @@ metadata = { RemoteHash = "40b1d2059a76ad98db4bf80139760acf8e8bae92a8265aaaf16ac
 | `package` | The resolved package name. |
 | `version` | The resolved version. |
 | `binary` | Whether `target` is a binary build (`true`) or a source tarball (`false`). |
-| `platform` | The platform the binary was built for, in the same form as the target’s `platform`, or `"source"`. This is not always the target’s `platform`: a target can mix binary and source packages. |
+| `platform` | The platform the binary was built for, in the same form as the target’s `platform`, or `"source"`. This is not always the target’s `platform`: a target can mix binary and source packages, and a Linux distribution target can have `manylinux` binaries, see “Platforms”. |
 | `dependencies` | The package’s own runtime dependency names, recorded so the graph can be re-verified without re-solving. |
 | `sources` | Where to install the package from: one or more alternative URLs of a package file, tried in order, a git commit, an archive with its hash, or a `file://` URL of a local package or the project’s own package. See “Reading a lock file”. |
 | `target` | Optional. The path the package file is (or will be) stored at, relative to the cache of the tool that wrote the lock file. The path is up to that tool, and readers may ignore it. |
@@ -284,25 +284,34 @@ metadata = { RemoteHash = "40b1d2059a76ad98db4bf80139760acf8e8bae92a8265aaaf16ac
 | `extra_groups` | The `[optional-dependencies.*]` extras that (transitively) need this package. Absent if none. |
 | `is_project` | `true` for the project’s own package (`type = "package"` in `rproj.toml`), which is installed from the project directory, not downloaded. Its `sources` is the `file://` URL of the project directory. Absent otherwise. |
 | `repository` | The repository the package comes from: `"bioc/<version>"` for a Bioconductor package, the name of the repository for a package of a CRAN-like repository. Absent for CRAN packages and for git, URL, and local packages. |
-| `system_requirements` | The package’s `SystemRequirements` field, with whitespace collapsed. Only recorded for Linux targets that need it, i.e. not for macOS, Windows, and generic Linux (`<arch>-unknown-linux-gnu`) binaries. Absent if the package needs no OS packages on this target. |
+| `system_requirements` | The package’s `SystemRequirements` field, with whitespace collapsed. Only recorded for Linux targets that need it, i.e. not for macOS, Windows, and generic Linux (`<arch>-unknown-linux-gnu-manylinux_<major>_<minor>`) binaries. Absent if the package needs no OS packages on this target. |
 | `os_type` | The package’s `OS_type` field, `"unix"` (macOS and Linux) or `"windows"`, if it only works on that OS. Absent otherwise. |
 
 ### Platforms
 
-A `platform` in `rproj.lock` is `"source"` or a target triple, with
-`aarch64` or `x86_64` as the architecture:
+A `platform` in `rproj.lock` is `"source"` or one of the platforms that
+[Tidyup 12](012-repo-api.md#platforms) defines for the binary indices of
+R package repositories, so a tool can match the binaries of a repository
+to the targets of a lock file by comparing strings. E.g.
+`aarch64-apple-darwin` and `x86_64-apple-darwin` for macOS,
+`x86_64-w64-mingw32` for Windows,
+`x86_64-unknown-linux-gnu-manylinux_2_28` for any x86_64 Linux with
+glibc 2.28 or later, and `x86_64-unknown-linux-gnu-ubuntu-24.04` for a
+specific Linux distribution and release. Tidyup 12 has the rules for the
+names of Linux distributions and releases, and for which `manylinux`
+platforms a machine can use.
 
-| Platform | Meaning |
-|----|----|
-| `aarch64-apple-darwin`, `x86_64-apple-darwin` | macOS. |
-| `x86_64-w64-mingw32`, `aarch64-w64-mingw32` | Windows. |
-| `x86_64-unknown-linux-gnu` | Any x86_64 Linux with glibc. Binaries for this platform do not depend on the libraries of a Linux distribution. |
-| `x86_64-unknown-linux-gnu-<distro>-<version>` | A specific Linux distribution and release, e.g. `ubuntu-24.04`, `debian-12`, `rhel-9`, or `opensuse-15.6`. |
-
-`<distro>` and `<version>` name the distribution and release that the
-binaries are built for. A distribution that uses the binaries of another
-one has that one’s name, e.g. Rocky Linux 9.4 is `rhel-9`. The `aarch64`
-forms have the same meaning for ARM64 machines.
+A tool may fall back to `manylinux` binaries when it solves a Linux
+distribution target, for packages that have no binary for that
+distribution and release. Then it may list a
+`<arch>-unknown-linux-gnu-manylinux_<x>_<y>` binary under a
+`<arch>-unknown-linux-gnu-<distro>-<version>` target, if the glibc of
+that distribution and release is `<x>.<y>` or later. The package’s
+`platform` is the `manylinux` platform, not the target’s. E.g. an
+`x86_64-unknown-linux-gnu-ubuntu-24.04` target, with glibc 2.39, may
+have `x86_64-unknown-linux-gnu-manylinux_2_28` binaries. A tool that
+does not fall back lists only binaries for the target’s own platform,
+and source packages.
 
 A lock file only uses these spellings. Tools may accept shorter forms on
 their command line, e.g. `rig` takes `macos`, `ubuntu-24.04`, or
@@ -317,13 +326,15 @@ the same way:
 
 1.  **Target choice.** A reader finds the platform of the machine, in
     the form above, and picks a target with that `platform`. If there is
-    none, on a Linux machine with glibc it picks an
-    `<arch>-unknown-linux-gnu` target. If there is none of those either,
-    it picks the `source` target. A target for another architecture, or
-    for another Linux distribution or release, does not match. If
-    targets for several R versions match, which one to use is up to the
-    reader, e.g. `rig` uses the one for the newest R version, unless
-    `--r-version` says otherwise.
+    none, on a Linux machine with glibc it picks the
+    `<arch>-unknown-linux-gnu-manylinux_<x>_<y>` target with the highest
+    glibc version `<x>.<y>` that is not newer than the glibc of the
+    machine. If there is none of those either, it picks the `source`
+    target. A target for another architecture, or for another Linux
+    distribution or release, does not match. If targets for several R
+    versions match, which one to use is up to the reader, e.g. `rig`
+    uses the one for the newest R version, unless `--r-version` says
+    otherwise.
 
 2.  **Format version.** A reader refuses a lock file with a `version`
     newer than the ones it knows. For an older `version` it either reads
