@@ -5,7 +5,7 @@ output: github_document
 # Tidyup 10: R virtual environments
 
 **Champion**: Gábor Csárdi<br>
-**Co-champion**: TBD<br>
+**Co-champion**: Aaron Jacobs, Greg Lin<br>
 **Status**: Draft
 
 ## Abstract

@@ -1,8 +1,8 @@
 
 # Tidyup 10: R virtual environments
 
-**Champion**: Gábor Csárdi<br> **Co-champion**: TBD<br> **Status**:
-Draft
+**Champion**: Gábor Csárdi<br> **Co-champion**: Aaron Jacobs, Greg
+Lin<br> **Status**: Draft
 
 ## Abstract
 

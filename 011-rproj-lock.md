@@ -1,8 +1,8 @@
 
 # Tidyup 11: `rproj.lock`, a lock file for R projects
 
-**Champion**: Gábor Csárdi<br> **Co-champion**: TBD<br> **Status**:
-Draft
+**Champion**: Gábor Csárdi<br> **Co-champion**: Aaron Jacobs, Greg
+Lin<br> **Status**: Draft
 
 ## Abstract
 
