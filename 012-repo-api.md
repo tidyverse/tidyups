@@ -196,6 +196,19 @@ These fields describe the repository’s policy when it wrote the file. A
 version without them may still be blocked when it is downloaded, if the
 repository’s rules changed since.
 
+Optional fields added by the repository:
+
+- `Published`: the time the version was published by the upstream
+  repository, in the same format as the `Published` field of CRAN
+  packages, i.e. `YYYY-MM-DD hh:mm:ss UTC`, e.g.
+  `2026-05-27 07:50:09 UTC`.
+- `Filesize`: the size of the file at `DownloadURL`, in bytes, as an
+  integer, e.g. `26267`.
+
+The repository may add other fields as well, e.g. other fields from the
+package’s `DESCRIPTION` file. Readers must ignore the fields they do not
+know.
+
 Rules for readers:
 
 - Records are in no particular order.
@@ -296,6 +309,14 @@ Columns:
 
 - `md5`: the MD5 hash of the file at `url`.
 
+- `filesize`: the size of the file at `url`, in bytes, as an integer.
+
+- `built`: `NA` for source tarballs. Otherwise the `Built` field of the
+  binary package, in the same format as in the `PACKAGES` file of a
+  binary R package repository: the R version, the platform, the time of
+  the build and the OS type, separated by a semicolon and a space, e.g.
+  `R 4.7.0; x86_64-pc-linux-gnu; 2026-10-19 13:19:53 UTC; unix`.
+
 - `linkingto`: empty for source tarballs and for packages without
   `LinkingTo` dependencies. Otherwise the source versions of the
   `LinkingTo` dependencies the binary was built against, as a
@@ -315,13 +336,15 @@ Rules for readers:
   file.
 
 - Find columns by their name in the header, not by their position. New
-  columns may be added later. The `linkingto`, `sha256` and `md5`
+  columns may be added later, and the repository may add columns that
+  this tidyup does not define. Readers must ignore the columns they do
+  not know. The `linkingto`, `sha256`, `md5`, `filesize` and `built`
   columns are optional. An index may have `sha256`, `md5`, both, or
   neither.
 
-- In the `sha256` and `md5` columns a missing value is the string `NA`.
-  Clients cannot check the download of a file if both `sha256` and `md5`
-  are missing.
+- In the `sha256`, `md5`, `filesize` and `built` columns a missing value
+  is the string `NA`. Clients cannot check the download of a file if
+  both `sha256` and `md5` are missing.
 
 - Several rows may have the same `version`, `platform`, `arch` and
   `r_version`. This happens when a package was rebuilt because a
