@@ -191,6 +191,11 @@ Fields added by the repository, if they apply to the version:
   comma-separated list, sorted by id. Each item is a vulnerability id,
   followed by its highest CVSS base score in parentheses, if it has one,
   e.g. `CVE-2024-27322 (8.8), GHSA-xxxx-xxxx-xxxx`.
+- `Yanked`: set if the version is yanked, see [Yanked versions and
+  builds](#yanked-versions-and-builds). The value is the time of the
+  yank, in RFC 3339 format, e.g. `2026-11-20T10:00:00Z`.
+- `YankedReason`: a description of why the version was yanked, for
+  people.
 
 These fields describe the repository’s policy when it wrote the file. A
 version without them may still be blocked when it is downloaded, if the
@@ -326,6 +331,14 @@ Columns:
   `LinkingTo: systemfonts, textshaping`, and its list also includes
   cpp11, because systemfonts and textshaping link to it.
 
+- `yanked`: `NA` if the build is not yanked. Otherwise the time of the
+  yank, in RFC 3339 format, see [Yanked versions and
+  builds](#yanked-versions-and-builds). Always `NA` for source tarballs.
+
+- `yanked_reason`: `NA` if the build is not yanked. Otherwise a
+  description of why the build was yanked, for people. It must not
+  contain tabs or newlines.
+
 Rules for readers:
 
 - Skip the comment lines, starting with `#`, at the beginning of the
@@ -334,13 +347,15 @@ Rules for readers:
 - Find columns by their name in the header, not by their position. New
   columns may be added later, and the repository may add columns that
   this tidyup does not define. Readers must ignore the columns they do
-  not know. The `linkingto`, `sha256`, `md5`, `filesize` and `built`
-  columns are optional. An index may have `sha256`, `md5`, both, or
-  neither.
+  not know. The `linkingto`, `sha256`, `md5`, `filesize`, `built`,
+  `yanked` and `yanked_reason` columns are optional. An index may have
+  `sha256`, `md5`, both, or neither. An index without a `yanked` column
+  has no yanked builds.
 
-- In the `sha256`, `md5`, `filesize` and `built` columns a missing value
-  is the string `NA`. Clients cannot check the download of a file if
-  both `sha256` and `md5` are missing.
+- In the `sha256`, `md5`, `filesize`, `built`, `yanked` and
+  `yanked_reason` columns a missing value is the string `NA`. Clients
+  cannot check the download of a file if both `sha256` and `md5` are
+  missing.
 
 - Several rows may have the same `version`, `platform` and `r_version`.
   This happens when a package was rebuilt because a `LinkingTo`
@@ -355,6 +370,60 @@ Rules for readers:
 There is no index of all binaries, and no listing of the `binaries/`
 directory. Clients download the indices of the packages they need, one
 request per package.
+
+### Yanked versions and builds
+
+A repository can yank a source package version or a single binary build,
+e.g. because it is broken. A yanked file is still served, so lock files
+that already have it keep working, but clients do not pick it when they
+solve dependencies or create a lock file. This is different from
+`Blocked`: a blocked version is not served at all.
+
+- A version is yanked with the `Yanked` and `YankedReason` fields of its
+  record in `ALLPACKAGES`. The fields are per record, so if the same
+  `(Package, Version)` pair has more than one record, e.g. because the
+  upstream repository replaced the tarball, each of them can be yanked
+  on its own.
+
+- A binary build is yanked with the `yanked` and `yanked_reason` columns
+  of its row in the binary index. Source rows are never yanked in the
+  binary index, readers check `Yanked` in `ALLPACKAGES` for that. If a
+  version is yanked, all its builds are yanked as well, and the
+  repository does not need to mark them one by one.
+
+- To yank a whole package, the repository yanks all its versions. A
+  package that must not be used at all is `Blocked: package` instead.
+
+- To undo a yank, the repository removes the fields, or sets the columns
+  to `NA`.
+
+A missing `Yanked` field or `yanked` value means the version or build is
+not yanked.
+
+Rules for readers:
+
+- When solving dependencies, skip yanked versions, unless the
+  requirement asks for exactly that version, or the version is already
+  in the lock file that is being updated. If only yanked versions
+  satisfy a requirement, fail and show `YankedReason`.
+
+- When picking a binary, skip yanked builds. Use another build of the
+  same version with matching `linkingto` versions, or fall back to the
+  source tarball.
+
+- When updating a lock file, keep the yanked versions that are already
+  in it, but tell the user, with the reason. Replace the yanked builds
+  that are in it, as above.
+
+- Ignore the time of the yank when hiding newer versions, e.g. with
+  `--exclude-newer <date>`: a yanked version is skipped even if it was
+  yanked after `<date>`.
+
+Installing packages from a lock file does not need the extended
+metadata, so yanks have no effect there: a locked yanked version or
+build is installed as it is. A client may offer a separate command that
+reads the metadata and reports the yanked versions and builds of a lock
+file.
 
 ### Platforms
 
@@ -513,6 +582,7 @@ Linux, see [Platforms](#platforms).
   user when a package was archived;
 - picking binaries for each target of a lock file, matching `platform`,
   `r_version` and `linkingto`;
+- skipping yanked versions and builds when it solves and locks;
 - recording `Id` in the lock file and in installed packages, to tell
   whether an installed package is the same as the locked one.
 
