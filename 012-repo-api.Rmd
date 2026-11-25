@@ -281,25 +281,21 @@ tarball or a binary build.
 
 ```
 # Format-Version: 1.0
-package version platform       arch   r_version source-id url                                                                                     linkingto
-cli     3.6.6   source         *      *         b2b58d…   https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
-cli     3.6.6   macos          arm64  4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
-cli     3.6.6   windows        x86_64 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip
-cli     3.6.6   noble          x86_64 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/noble-x86_64/4.6/src/contrib/cli_3.6.6.tar.gz
-cli     3.6.6   manylinux_2_28 arm64  4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/manylinux_2_28-arm64/4.6/src/contrib/cli_3.6.6.tar.gz
+package version platform                                 r_version source-id url                                                                                     linkingto
+cli     3.6.6   source                                   *         b2b58d…   https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
+cli     3.6.6   aarch64-apple-darwin                     4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
+cli     3.6.6   x86_64-w64-mingw32                       4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip
+cli     3.6.6   x86_64-unknown-linux-gnu-ubuntu-24.04    4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/noble-x86_64/4.6/src/contrib/cli_3.6.6.tar.gz
+cli     3.6.6   aarch64-unknown-linux-gnu-manylinux_2_28 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/manylinux_2_28-arm64/4.6/src/contrib/cli_3.6.6.tar.gz
 ```
 
 Columns:
 
 - `package`: the package name.
 - `version`: the package version, exactly as in `ALLPACKAGES`.
-- `platform`: `source` for the source tarball. Otherwise `macos`,
-  `windows`, a Linux distribution name, e.g. `jammy`, `noble`,
-  `bookworm`, `rhel9`, `opensuse156`, or `manylinux_2_28` for a
-  generic build that works on any Linux distribution with glibc 2.28
-  or later.
-- `arch`: `*` for source tarballs, otherwise `x86_64` or `arm64`
-  (not `aarch64`).
+- `platform`: `source` for the source tarball, otherwise the platform
+  the binary was built for, see [Platforms](#platforms), e.g.
+  `aarch64-apple-darwin` or `x86_64-unknown-linux-gnu-ubuntu-24.04`.
 - `r_version`: `*` for source tarballs, otherwise the minor R version
   the binary was built for, e.g. `4.5`.
 - `source-id`: the `Id` of the source tarball of the
@@ -354,7 +350,7 @@ Rules for readers:
   value is the string `NA`. Clients cannot check the download of a
   file if both `sha256` and `md5` are missing.
 
-- Several rows may have the same `version`, `platform`, `arch` and
+- Several rows may have the same `version`, `platform` and
   `r_version`. This happens when a package was rebuilt because a
   `LinkingTo` dependency changed, and the `linkingto` column is what
   tells them apart. A client that picks a binary for a lock file needs
@@ -367,6 +363,62 @@ Rules for readers:
 There is no index of all binaries, and no listing of the `binaries/`
 directory. Clients download the indices of the packages they need, one
 request per package.
+
+### Platforms
+
+A platform is `source` or a target triple. The platforms are the same
+as in `rproj.lock`, see [Tidyup 11](011-rproj-lock.md), so a client can
+match the rows of a binary index to the targets of a lock file by
+comparing strings.
+
+| Platform | Meaning |
+|---|---|
+| `aarch64-apple-darwin`, `x86_64-apple-darwin` | macOS. |
+| `x86_64-w64-mingw32`, `aarch64-w64-mingw32` | Windows. |
+| `x86_64-unknown-linux-gnu-manylinux_<major>_<minor>` | Any x86_64 Linux with glibc `<major>.<minor>` or later, e.g. `manylinux_2_28`. The binaries do not depend on the libraries of a Linux distribution. |
+| `x86_64-unknown-linux-gnu-<distro>-<version>` | A specific Linux distribution and release, e.g. `ubuntu-24.04`, `debian-12`, `rhel-9`, `opensuse-15.6`. |
+
+The architecture is `x86_64` or `aarch64`, never `amd64` or `arm64`.
+The `aarch64` forms of the Linux platforms have the same meaning for
+ARM64 machines.
+
+The macOS platforms do not have a macOS version. macOS binaries must
+work on the same macOS versions as CRAN's macOS binaries for the same
+R version and architecture, i.e. their minimum macOS version is the
+same as CRAN's. A repository that cannot build binaries for that
+macOS version does not serve macOS binaries.
+
+`<distro>` and `<version>` come from the `/etc/os-release` file of the
+system the binaries are built for: `<distro>` is the `ID` field, and
+`<version>` is the part of `VERSION_ID` that binaries of the
+distribution are compatible within: the major version for `rhel`
+and `debian`, e.g. `rhel-9`, `major.minor` for `ubuntu` and
+`opensuse`, e.g. `ubuntu-24.04`. openSUSE Leap is `opensuse`, not
+`opensuse-leap`. With this rule a repository can add
+a new distribution without a change to this specification, and a
+client can find the platform of the machine from `/etc/os-release`.
+
+A distribution that uses the binaries of another one has that one's
+name, e.g. Rocky Linux 9.4 and AlmaLinux 9.4 are `rhel-9`. Which
+distributions use the binaries of which other ones is up to the
+clients, this tidyup does not list them. The `ID_LIKE` field of
+`/etc/os-release` helps, but it is not always enough, e.g. SUSE Linux
+Enterprise 15.7 may use the `opensuse-15.6` binaries.
+
+The generic Linux builds follow the `manylinux` naming of Python's
+[PEP 600](https://peps.python.org/pep-0600/): `manylinux_2_28`
+binaries need glibc 2.28 or later, and do not link to other system
+libraries, except the ones that every glibc Linux has. `manylinux` is
+not a distribution `ID`, so the two forms do not clash. A machine
+with glibc `<major>.<minor>` can use every `manylinux_<x>_<y>` build
+with `<x>.<y>` up to its own glibc version, comparing the parts as
+integers. A client should prefer a build for the machine's own
+distribution and release, and otherwise the `manylinux` build with
+the highest glibc version it can use.
+
+Readers must accept platforms they do not know, and skip their rows.
+A possible later addition is `<arch>-unknown-linux-musl-musllinux_<major>_<minor>`
+for Alpine Linux, also from PEP 600.
 
 ### Versioning
 
@@ -421,6 +473,42 @@ different column names in the binary tables currently, this will be
 standardized as the this specification matures. They do not have
 version markers yet, so they are version 0.0.
 
+The version 0.0 binary indices use the P3M platform names, and a
+separate `arch` column with `x86_64` or `arm64`. This table maps every
+P3M platform with binaries to the platforms of
+this tidyup. `<arch>` is `x86_64` or `aarch64`, P3M has `aarch64`
+binaries for `macos`, `manylinux_2_28`, `noble`, `resolute`, `rhel9`
+and `rhel10`, and `x86_64` binaries for all of them.
+
+| P3M platform | Platform |
+|---|---|
+| `macos` | `<arch>-apple-darwin` |
+| `windows` | `x86_64-w64-mingw32` |
+| `manylinux_2_28` | `<arch>-unknown-linux-gnu-manylinux_2_28` |
+| `xenial` | `x86_64-unknown-linux-gnu-ubuntu-16.04` |
+| `bionic` | `x86_64-unknown-linux-gnu-ubuntu-18.04` |
+| `focal` | `x86_64-unknown-linux-gnu-ubuntu-20.04` |
+| `jammy` | `x86_64-unknown-linux-gnu-ubuntu-22.04` |
+| `noble` | `<arch>-unknown-linux-gnu-ubuntu-24.04` |
+| `resolute` | `<arch>-unknown-linux-gnu-ubuntu-26.04` |
+| `bullseye` | `x86_64-unknown-linux-gnu-debian-11` |
+| `bookworm` | `x86_64-unknown-linux-gnu-debian-12` |
+| `trixie` | `x86_64-unknown-linux-gnu-debian-13` |
+| `centos7` | `x86_64-unknown-linux-gnu-rhel-7` |
+| `centos8` | `x86_64-unknown-linux-gnu-rhel-8` |
+| `rhel9` | `<arch>-unknown-linux-gnu-rhel-9` |
+| `rhel10` | `<arch>-unknown-linux-gnu-rhel-10` |
+| `opensuse42` | `x86_64-unknown-linux-gnu-opensuse-42.3` |
+| `opensuse15` | `x86_64-unknown-linux-gnu-opensuse-15.0` |
+| `opensuse152` ... `opensuse156` | `x86_64-unknown-linux-gnu-opensuse-15.2` ... `x86_64-unknown-linux-gnu-opensuse-15.6` |
+
+P3M also has build targets that reuse the binaries of another one:
+`rhel7` and `rhel8` use `centos7` and `centos8`, and the SUSE Linux
+Enterprise targets use the openSUSE Leap binaries, e.g. `sles157` uses
+`opensuse156`. These are not separate platforms. A client on CentOS 7,
+or on SLES 15.7, finds the matching platform the same way as on Rocky
+Linux, see [Platforms](#platforms).
+
 ### `rig`
 
 `rig` uses the extended metadata for:
@@ -432,7 +520,7 @@ version markers yet, so they are version 0.0.
 - listing available packages, hiding archived packages, and telling the
   user when a package was archived;
 - picking binaries for each target of a lock file, matching `platform`,
-  `arch`, `r_version` and `linkingto`;
+  `r_version` and `linkingto`;
 - recording `Id` in the lock file and in installed
   packages, to tell whether an installed package is the same as the
   locked one.
