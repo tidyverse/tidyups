@@ -1,0 +1,611 @@
+
+# Tidyup 12: Extended metadata for R package repositories
+
+**Champion**: Gábor Csárdi<br> **Co-champion**: Aaron Jacobs, Greg
+Lin<br> **Status**: Draft
+
+## Abstract
+
+This tidyup specifies a set of files that an R package repository can
+serve, in addition to the usual `PACKAGES` files, to describe its full
+history: every source package version it ever published, the packages it
+removed, and every binary build of every package version. Tools that
+lock or reproduce R projects need this information, and today they can
+only get it by scraping several services. The format is plain DCF and
+TSV, compressed with zstd, so it is easy to produce and easy to read.
+
+Posit Package Manager (P3M) data for CRAN and Bioconductor is published
+in this format at `https://ppm.r-pkg.org/v1` and
+`https://ppm-bioc.r-pkg.org/v1`. `rig` is the reference client, and uses
+these files to solve and lock `rproj.toml` projects, see [Tidyup
+9](009-rproj-toml.md) and [Tidyup 11](011-rproj-lock.md).
+
+## Motivation
+
+- **`PACKAGES` only describes the latest versions.**
+
+  A CRAN-like repository’s `PACKAGES` file lists the current version of
+  each package. Older versions live in `src/contrib/Archive/`, which has
+  no index of its own, so a resolver cannot see their dependencies
+  without downloading and unpacking every tarball. A dependency solver
+  that may need to go back to an older version, for example to satisfy
+  an upper bound, or to reproduce a project as it was on a given day,
+  needs all of them.
+
+- **No record of when a version was published.**
+
+  Reproducing a project “as of” a date needs the date each version first
+  appeared. `PACKAGES` does not have it. Snapshot repositories have it
+  implicitly, one full `PACKAGES` file per day, but finding the first
+  snapshot of a version means searching through them.
+
+- **No record of removed packages.**
+
+  CRAN archives packages regularly. A tool cannot tell an archived
+  package from a typo, or tell the user when and why it disappeared,
+  without the archive date.
+
+- **Binaries are scattered across many `PACKAGES` files.**
+
+  P3M serves binaries for many Linux distributions, macOS and Windows,
+  for many R versions, from daily snapshots. Finding out which builds
+  exist for a package means asking one `PACKAGES` file per platform, R
+  version and date. A lock file that covers several platforms and R
+  versions needs all of those answers at once.
+
+- **Binaries depend on the versions they were built against.**
+
+  A binary of a package with `LinkingTo` dependencies includes code from
+  the headers of those dependencies. If the installed version of a
+  `LinkingTo` dependency differs, the binary may not work. `PACKAGES`
+  does not record which versions a binary was built against.
+
+## Solution
+
+A repository with extended metadata has a base URL, and serves these
+files under it:
+
+    <base>/METADATA
+    <base>/ALLPACKAGES.zst
+    <base>/ALLPACKAGES
+    <base>/ARCHIVEDPACKAGES.zst
+    <base>/ARCHIVEDPACKAGES
+    <base>/binaries/<package>.tsv.zst
+
+The plain text files have the same content as their `.zst` counterparts.
+The extended metadata does not replace the repository: package files are
+still downloaded from the URLs listed in the metadata, and the
+repository may still serve regular `PACKAGES` files for tools that do
+not know about this format.
+
+This format is for repositories that keep old package versions and old
+binary builds available after they publish new ones. Download URLs
+should be stable: the URL of a file should not change, and it should
+keep working for as long as the repository serves the file. This is not
+required, but it is strongly suggested, because lock files record these
+URLs.
+
+The current instances are:
+
+| Repository | Base URL |
+|----|----|
+| CRAN | `https://ppm.r-pkg.org/v1` |
+| Bioconductor release `<v>` | `https://ppm-bioc.r-pkg.org/v1/<v>`, e.g. `https://ppm-bioc.r-pkg.org/v1/3.22` |
+
+### `METADATA`
+
+`METADATA` is a DCF file with a single record that describes the
+repository as a whole:
+
+    Format-Version: 1.0
+    Generated: 2026-11-24T06:00:00Z
+
+Fields:
+
+- `Format-Version`: the version of the format of the extended metadata,
+  as `<major>.<minor>`, see [Versioning](#versioning). This tidyup
+  describes version 1.0.
+- `Generated`: optional, the time the repository last wrote the files,
+  in RFC 3339 format.
+
+Readers must ignore fields they do not know.
+
+`METADATA` is small and not compressed, so clients can check the version
+before they download the much larger `ALLPACKAGES.zst`.
+
+### `ALLPACKAGES`
+
+`ALLPACKAGES` is a DCF file, in the same format as `PACKAGES`, with one
+record for every source package version the repository ever published,
+archived or not. For CRAN this is around 200,000 records.
+
+    Package: cli
+    Version: 3.6.6
+    Depends: R (>= 3.4)
+    Imports: utils
+    Suggests: callr, covr, crayon, digest, glue (>= 1.6.0), grDevices, htmltools, htmlwidgets, knitr, methods, processx, ps (>= 1.3.4.9000), rlang (>= 1.0.2.9003), rmarkdown, rprojroot, rstudioapi, testthat (>= 3.2.0), tibble, whoami, withr
+    License: MIT + file LICENSE
+    NeedsCompilation: yes
+    SHA256: 27b5e74a6b2a8264457ce8412ded40aa7b660e01894bea4bfde956bbc4b5b294
+    Id: b2b58d6dd82f5798b335e39c00591686a01fd3e94399ef898e146173e36f18f9
+    Snapshot: 2026-04-10
+    DownloadURL: https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
+
+Fields copied from the package’s `DESCRIPTION` file, if present:
+
+- `Package`, `Version` (always present).
+- `Depends`, `Imports`, `LinkingTo`, `Suggests`, `Enhances`.
+- `License`, `License_is_FOSS`, `License_restricts_use`.
+- `NeedsCompilation`, `Priority`, `OS_type`, `Archs`,
+  `SystemRequirements`.
+
+Fields added by the repository, always present:
+
+- `SHA256`: the SHA-256 hash of the file at `DownloadURL`.
+
+- `Id`: an identifier of the source tarball, in the same format as a
+  SHA-256 hash: 64 lowercase hexadecimal characters. Different tarballs
+  must have different ids, and the id of a tarball must not change over
+  time. The binary indices use this id as well.
+
+  A repository can use its `SHA256` field as the id. P3M uses the
+  SHA-256 hash of the original source tarball, as published by the
+  upstream repository (CRAN or Bioconductor).
+
+- `Snapshot`: the date the version first appeared in the repository, as
+  `YYYY-MM-DD`.
+
+- `DownloadURL`: the download URL of the source tarball. It should be a
+  stable URL, see above. It is one of:
+
+  - a full URL, e.g.
+    `https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz`,
+  - an absolute path, e.g.
+    `/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz`, or
+  - a relative path, e.g. `2026-04-10/src/contrib/cli_3.6.6.tar.gz`.
+
+  Readers resolve a path against the URL of the file that contains it,
+  as in RFC 3986: an absolute path keeps the scheme and host of that
+  URL, and a relative path may use `../`. Paths let a repository work
+  behind any host name, and relative paths also behind any proxy path.
+
+Fields added by the repository, if they apply to the version:
+
+- `Blocked`: set if the repository blocks the version, i.e. it refuses
+  to serve it, no matter how old it is. The value is the kind of rule
+  that blocks it: `package`, `license`, `vulnerability` or `deleted`.
+  Readers must accept other values as well.
+- `BlockedRule`: an identifier of the rule that blocks the version. Its
+  format is up to the repository.
+- `BlockedReason`: a description of the rule that blocks the version,
+  for people.
+- `BlockedUntil`: set if the version is blocked because it is too new,
+  e.g. a rule blocks versions younger than seven days. It is the time
+  the version becomes available, in RFC 3339 format, e.g.
+  `2026-04-17T00:00:00Z`. Readers compare it to the current time; the
+  version is blocked before it. A version may have both `Blocked` and
+  `BlockedUntil`, then it stays blocked after `BlockedUntil`.
+- `Vulnerabilities`: the known vulnerabilities of the version, as a
+  comma-separated list, sorted by id. Each item is a vulnerability id,
+  followed by its highest CVSS base score in parentheses, if it has one,
+  e.g. `CVE-2024-27322 (8.8), GHSA-xxxx-xxxx-xxxx`.
+- `Yanked`: set if the version is yanked, see [Yanked versions and
+  builds](#yanked-versions-and-builds). The value is the time of the
+  yank, in RFC 3339 format, e.g. `2026-11-20T10:00:00Z`.
+- `YankedReason`: a description of why the version was yanked, for
+  people.
+
+These fields describe the repository’s policy when it wrote the file. A
+version without them may still be blocked when it is downloaded, if the
+repository’s rules changed since.
+
+Optional fields added by the repository:
+
+- `Published`: the time the version was published by the upstream
+  repository, in the same format as the `Published` field of CRAN
+  packages, i.e. `YYYY-MM-DD hh:mm:ss UTC`, e.g.
+  `2026-05-27 07:50:09 UTC`.
+- `Filesize`: the size of the file at `DownloadURL`, in bytes, as an
+  integer, e.g. `26267`.
+
+The repository may add other fields as well, e.g. other fields from the
+package’s `DESCRIPTION` file. Readers must ignore the fields they do not
+know.
+
+Rules for readers:
+
+- Records are in no particular order.
+
+- The same `(Package, Version)` pair may appear more than once. This
+  happens when the upstream repository replaced a tarball without
+  changing its version number. The records differ in `SHA256`, `Id`,
+  `Snapshot` and `DownloadURL`, and possibly in the other fields. There
+  are about 350 such pairs for CRAN. Each of these records is valid, and
+  readers may use any of them.
+
+- The file may have comment lines, starting with `#`. Readers must skip
+  them. The first line of the file should be a comment with the format
+  version, see [Versioning](#versioning):
+
+      # Format-Version: 1.0
+
+- Some records may have dependency fields that do not parse, e.g.
+  `Depends: tcltk (butonlyfortheGUI), allotherfunctionsarestandalone)`.
+  Readers should skip these records, not the whole file.
+
+### `ARCHIVEDPACKAGES`
+
+`ARCHIVEDPACKAGES` lists the packages that the upstream repository
+removed. It has the same format and the same fields as `ALLPACKAGES`,
+plus one more field:
+
+- `Archived`: the date the package was archived, as `YYYY-MM-DD`.
+
+There is one record per archived package, describing the last version
+published before it was archived.
+
+    Package: gpclib
+    Version: 1.5-6
+    Depends: R (>= 3.0.0), methods
+    Imports: graphics
+    License: file LICENSE
+    License_restricts_use: yes
+    NeedsCompilation: yes
+    SHA256: 5ef1de6f69ca88b8d9960b3c637d566b59d7401aa4ec1d3dc30bb248e9126c00
+    Id: fa4e3e1f74e327b185e873052f826312ed6f71cc907a49be4c1e224ace7b5286
+    Snapshot: 2020-03-02
+    DownloadURL: https://p3m.dev/cran/2020-03-02/src/contrib/gpclib_1.5-6.tar.gz
+    Archived: 2023-04-06
+
+A package is “current” if it has a record in `ALLPACKAGES` and does not
+have one in `ARCHIVEDPACKAGES`. If an archived package comes back to the
+upstream repository, the repository removes its record from
+`ARCHIVEDPACKAGES`.
+
+### `binaries/<package>.tsv.zst`
+
+There is one binary index per package, a zstd-compressed, tab-separated
+file. It may start with comment lines, starting with `#`, the first of
+which should give the format version, see [Versioning](#versioning). The
+next line is a header with the column names, and each other line is one
+downloadable file: the source tarball or a binary build.
+
+    # Format-Version: 1.0
+    package version platform                                 r_version source-id url                                                                                     linkingto
+    cli     3.6.6   source                                   *         b2b58d…   https://p3m.dev/cran/2026-04-10/src/contrib/cli_3.6.6.tar.gz
+    cli     3.6.6   aarch64-apple-darwin                     4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/macosx/sonoma-arm64/contrib/4.6/cli_3.6.6.tgz
+    cli     3.6.6   x86_64-w64-mingw32                       4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip
+    cli     3.6.6   x86_64-unknown-linux-gnu-ubuntu-24.04    4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/noble-x86_64/4.6/src/contrib/cli_3.6.6.tar.gz
+    cli     3.6.6   aarch64-unknown-linux-gnu-manylinux_2_28 4.6       b2b58d…   https://p3m.dev/cran/2026-04-10/bin/linux/manylinux_2_28-arm64/4.6/src/contrib/cli_3.6.6.tar.gz
+
+Columns:
+
+- `package`: the package name.
+
+- `version`: the package version, exactly as in `ALLPACKAGES`.
+
+- `platform`: `source` for the source tarball, otherwise the platform
+  the binary was built for, see [Platforms](#platforms), e.g.
+  `aarch64-apple-darwin` or `x86_64-unknown-linux-gnu-ubuntu-24.04`.
+
+- `r_version`: `*` for source tarballs, otherwise the minor R version
+  the binary was built for, e.g. `4.5`.
+
+- `source-id`: the `Id` of the source tarball of the version, from
+  `ALLPACKAGES`. It is the same on every row of a version. It is *not*
+  the hash of the file at `url`, so it cannot be used to check a
+  download, use `sha256` or `md5` for that. It identifies the source
+  tarball the binary was built from.
+
+- `url`: the download URL of the file. It should be a stable URL, see
+  above. Like `DownloadURL` in `ALLPACKAGES`, it is a full URL, an
+  absolute path or a relative path, resolved against the URL of the
+  index. The index is in `binaries/`, so a relative path starts with
+  `../` to get to the base URL, e.g.
+  `../2026-04-10/bin/windows/contrib/4.6/cli_3.6.6.zip`.
+
+- `sha256`: the SHA-256 hash of the file at `url`.
+
+- `md5`: the MD5 hash of the file at `url`.
+
+- `filesize`: the size of the file at `url`, in bytes, as an integer.
+
+- `built`: `NA` for source tarballs. Otherwise the `Built` field of the
+  binary package, in the same format as in the `PACKAGES` file of a
+  binary R package repository: the R version, the platform, the time of
+  the build and the OS type, separated by a semicolon and a space, e.g.
+  `R 4.7.0; x86_64-pc-linux-gnu; 2026-10-19 13:19:53 UTC; unix`.
+
+- `linkingto`: empty for source tarballs and for packages without
+  `LinkingTo` dependencies. Otherwise the source versions of the
+  `LinkingTo` dependencies the binary was built against, as a
+  comma-separated list of `<package>@<version>=<id>` entries, where
+  `<id>` is the `Id` of that dependency version:
+
+      cpp11@0.5.4=6e0053ce…,systemfonts@1.3.2=828a1780…,textshaping@1.0.5=12209d55…
+
+  This list is the transitive closure of `LinkingTo` dependencies, not a
+  copy of the package’s `LinkingTo` field. E.g. ragg has
+  `LinkingTo: systemfonts, textshaping`, and its list also includes
+  cpp11, because systemfonts and textshaping link to it.
+
+- `yanked`: `NA` if the build is not yanked. Otherwise the time of the
+  yank, in RFC 3339 format, see [Yanked versions and
+  builds](#yanked-versions-and-builds). Always `NA` for source tarballs.
+
+- `yanked_reason`: `NA` if the build is not yanked. Otherwise a
+  description of why the build was yanked, for people. It must not
+  contain tabs or newlines.
+
+Rules for readers:
+
+- Skip the comment lines, starting with `#`, at the beginning of the
+  file.
+
+- Find columns by their name in the header, not by their position. New
+  columns may be added later, and the repository may add columns that
+  this tidyup does not define. Readers must ignore the columns they do
+  not know. The `linkingto`, `sha256`, `md5`, `filesize`, `built`,
+  `yanked` and `yanked_reason` columns are optional. An index may have
+  `sha256`, `md5`, both, or neither. An index without a `yanked` column
+  has no yanked builds.
+
+- In the `sha256`, `md5`, `filesize`, `built`, `yanked` and
+  `yanked_reason` columns a missing value is the string `NA`. Clients
+  cannot check the download of a file if both `sha256` and `md5` are
+  missing.
+
+- Several rows may have the same `version`, `platform` and `r_version`.
+  This happens when a package was rebuilt because a `LinkingTo`
+  dependency changed, and the `linkingto` column is what tells them
+  apart. A client that picks a binary for a lock file needs to pick the
+  row whose `linkingto` versions match the versions it resolved, or fall
+  back to the source tarball.
+
+- A package without an index, e.g. a Bioconductor package in the CRAN
+  repository, has no file, so an HTTP(S) server returns 404.
+
+There is no index of all binaries, and no listing of the `binaries/`
+directory. Clients download the indices of the packages they need, one
+request per package.
+
+### Yanked versions and builds
+
+A repository can yank a source package version or a single binary build,
+e.g. because it is broken. A yanked file is still served, so lock files
+that already have it keep working, but clients do not pick it when they
+solve dependencies or create a lock file. This is different from
+`Blocked`: a blocked version is not served at all.
+
+- A version is yanked with the `Yanked` and `YankedReason` fields of its
+  record in `ALLPACKAGES`. The fields are per record, so if the same
+  `(Package, Version)` pair has more than one record, e.g. because the
+  upstream repository replaced the tarball, each of them can be yanked
+  on its own.
+
+- A binary build is yanked with the `yanked` and `yanked_reason` columns
+  of its row in the binary index. Source rows are never yanked in the
+  binary index, readers check `Yanked` in `ALLPACKAGES` for that. If a
+  version is yanked, all its builds are yanked as well, and the
+  repository does not need to mark them one by one.
+
+- To yank a whole package, the repository yanks all its versions. A
+  package that must not be used at all is `Blocked: package` instead.
+
+- To undo a yank, the repository removes the fields, or sets the columns
+  to `NA`.
+
+A missing `Yanked` field or `yanked` value means the version or build is
+not yanked.
+
+Rules for readers:
+
+- When solving dependencies, skip yanked versions, unless the
+  requirement asks for exactly that version, or the version is already
+  in the lock file that is being updated. If only yanked versions
+  satisfy a requirement, fail and show `YankedReason`.
+
+- When picking a binary, skip yanked builds. Use another build of the
+  same version with matching `linkingto` versions, or fall back to the
+  source tarball.
+
+- When updating a lock file, keep the yanked versions that are already
+  in it, but tell the user, with the reason. Replace the yanked builds
+  that are in it, as above.
+
+- Ignore the time of the yank when hiding newer versions, e.g. with
+  `--exclude-newer <date>`: a yanked version is skipped even if it was
+  yanked after `<date>`.
+
+Installing packages from a lock file does not need the extended
+metadata, so yanks have no effect there: a locked yanked version or
+build is installed as it is. A client may offer a separate command that
+reads the metadata and reports the yanked versions and builds of a lock
+file.
+
+### Platforms
+
+A platform is `source` or a target triple. The platforms are the same as
+in `rproj.lock`, see [Tidyup 11](011-rproj-lock.md), so a client can
+match the rows of a binary index to the targets of a lock file by
+comparing strings.
+
+| Platform | Meaning |
+|----|----|
+| `aarch64-apple-darwin`, `x86_64-apple-darwin` | macOS. |
+| `x86_64-w64-mingw32`, `aarch64-w64-mingw32` | Windows. |
+| `x86_64-unknown-linux-gnu-manylinux_<major>_<minor>` | Any x86_64 Linux with glibc `<major>.<minor>` or later, e.g. `manylinux_2_28`. The binaries do not depend on the libraries of a Linux distribution. |
+| `x86_64-unknown-linux-gnu-<distro>-<version>` | A specific Linux distribution and release, e.g. `ubuntu-24.04`, `debian-12`, `rhel-9`, `opensuse-15.6`. |
+
+The architecture is `x86_64` or `aarch64`, never `amd64` or `arm64`. The
+`aarch64` forms of the Linux platforms have the same meaning for ARM64
+machines.
+
+The macOS platforms do not have a macOS version. macOS binaries must
+work on the same macOS versions as CRAN’s macOS binaries for the same R
+version and architecture, i.e. their minimum macOS version is the same
+as CRAN’s. A repository that cannot build binaries for that macOS
+version does not serve macOS binaries.
+
+`<distro>` and `<version>` come from the `/etc/os-release` file of the
+system the binaries are built for: `<distro>` is the `ID` field, and
+`<version>` is the part of `VERSION_ID` that binaries of the
+distribution are compatible within: the major version for `rhel` and
+`debian`, e.g. `rhel-9`, `major.minor` for `ubuntu` and `opensuse`,
+e.g. `ubuntu-24.04`. openSUSE Leap is `opensuse`, not `opensuse-leap`.
+With this rule a repository can add a new distribution without a change
+to this specification, and a client can find the platform of the machine
+from `/etc/os-release`.
+
+A distribution that uses the binaries of another one has that one’s
+name, e.g. Rocky Linux 9.4 and AlmaLinux 9.4 are `rhel-9`. Which
+distributions use the binaries of which other ones is up to the clients,
+this tidyup does not list them. The `ID_LIKE` field of `/etc/os-release`
+helps, but it is not always enough, e.g. SUSE Linux Enterprise 15.7 may
+use the `opensuse-15.6` binaries.
+
+The generic Linux builds follow the `manylinux` naming of Python’s [PEP
+600](https://peps.python.org/pep-0600/): `manylinux_2_28` binaries need
+glibc 2.28 or later, and do not link to other system libraries, except
+the ones that every glibc Linux has. `manylinux` is not a distribution
+`ID`, so the two forms do not clash. A machine with glibc
+`<major>.<minor>` can use every `manylinux_<x>_<y>` build with `<x>.<y>`
+up to its own glibc version, comparing the parts as integers. A client
+should prefer a build for the machine’s own distribution and release,
+and otherwise the `manylinux` build with the highest glibc version it
+can use.
+
+Readers must accept platforms they do not know, and skip their rows. A
+possible later addition is
+`<arch>-unknown-linux-musl-musllinux_<major>_<minor>` for Alpine Linux,
+also from PEP 600.
+
+### Versioning
+
+The format version has two parts, `<major>.<minor>`, both non-negative
+integers, e.g. `1.0`. Readers compare the parts as integers, so `1.10`
+is newer than `1.9`. A repository gives the version in the
+`Format-Version` field of `METADATA`, and in a
+`# Format-Version: <major>.<minor>` comment at the start of every
+`ALLPACKAGES`, `ARCHIVEDPACKAGES` and binary index file. All of these
+have the same version. This tidyup specifies version 1.0.
+
+Changes that old readers can still read increase the minor version: new
+fields in the DCF files, new columns in the binary indices, new
+`Blocked` values. The minor version tells readers which fields and
+columns the repository knows about. E.g. if a later minor version adds a
+field, a missing field in a file of that version means that the field
+does not apply to the record, but in a file of an older version it means
+that the repository does not provide it.
+
+Changes that old readers cannot read increase the major version and
+reset the minor version to zero. The repository serves the new major
+version under a new base URL, so it can serve the old and the new
+versions side by side, and old clients keep working. E.g. the P3M
+instances serve version 1 under `https://ppm.r-pkg.org/v1`, and would
+serve version 2 under `https://ppm.r-pkg.org/v2`.
+
+Rules for readers:
+
+- If the major version is one they do not know, readers must refuse the
+  files.
+
+- If the minor version is newer than the one they know, readers must
+  read the files, and ignore the fields, columns and values they do not
+  know. They may warn the user.
+
+- Readers should check the version in each data file as well, not only
+  in `METADATA`, because caches may serve files from different updates
+  together.
+
+## Implementations
+
+### Server
+
+The CRAN and Bioconductor instances are generated from P3M data and
+updated daily. They serve version 1.0 of the format.
+
+This table maps every P3M platform with binaries to the platforms of
+this tidyup. `<arch>` is `x86_64` or `aarch64`, P3M has `aarch64`
+binaries for `macos`, `manylinux_2_28`, `noble`, `resolute`, `rhel9` and
+`rhel10`, and `x86_64` binaries for all of them.
+
+| P3M platform | Platform |
+|----|----|
+| `macos` | `<arch>-apple-darwin` |
+| `windows` | `x86_64-w64-mingw32` |
+| `manylinux_2_28` | `<arch>-unknown-linux-gnu-manylinux_2_28` |
+| `xenial` | `x86_64-unknown-linux-gnu-ubuntu-16.04` |
+| `bionic` | `x86_64-unknown-linux-gnu-ubuntu-18.04` |
+| `focal` | `x86_64-unknown-linux-gnu-ubuntu-20.04` |
+| `jammy` | `x86_64-unknown-linux-gnu-ubuntu-22.04` |
+| `noble` | `<arch>-unknown-linux-gnu-ubuntu-24.04` |
+| `resolute` | `<arch>-unknown-linux-gnu-ubuntu-26.04` |
+| `bullseye` | `x86_64-unknown-linux-gnu-debian-11` |
+| `bookworm` | `x86_64-unknown-linux-gnu-debian-12` |
+| `trixie` | `x86_64-unknown-linux-gnu-debian-13` |
+| `centos7` | `x86_64-unknown-linux-gnu-rhel-7` |
+| `centos8` | `x86_64-unknown-linux-gnu-rhel-8` |
+| `rhel9` | `<arch>-unknown-linux-gnu-rhel-9` |
+| `rhel10` | `<arch>-unknown-linux-gnu-rhel-10` |
+| `opensuse42` | `x86_64-unknown-linux-gnu-opensuse-42.3` |
+| `opensuse15` | `x86_64-unknown-linux-gnu-opensuse-15.0` |
+| `opensuse152` … `opensuse156` | `x86_64-unknown-linux-gnu-opensuse-15.2` … `x86_64-unknown-linux-gnu-opensuse-15.6` |
+
+P3M also has build targets that reuse the binaries of another one:
+`rhel7` and `rhel8` use `centos7` and `centos8`, and the SUSE Linux
+Enterprise targets use the openSUSE Leap binaries, e.g. `sles157` uses
+`opensuse156`. These are not separate platforms. A client on CentOS 7,
+or on SLES 15.7, finds the matching platform the same way as on Rocky
+Linux, see [Platforms](#platforms).
+
+### `rig`
+
+`rig` uses the extended metadata for:
+
+- solving dependencies, using all versions in `ALLPACKAGES`, not just
+  the current ones;
+- `--exclude-newer <date>`: hiding the versions with a `Snapshot` date
+  after `<date>`;
+- listing available packages, hiding archived packages, and telling the
+  user when a package was archived;
+- picking binaries for each target of a lock file, matching `platform`,
+  `r_version` and `linkingto`;
+- skipping yanked versions and builds when it solves and locks;
+- recording `Id` in the lock file and in installed packages, to tell
+  whether an installed package is the same as the locked one.
+
+## Backwards compatibility
+
+The extended metadata is served in addition to the regular repository,
+under a different URL. Existing tools are not affected.
+
+## How to teach
+
+Users will not see these files.
+
+## Unresolved questions
+
+None currently.
+
+## Alternatives
+
+### Per-day `PACKAGES` files
+
+P3M already serves a full `PACKAGES` file for every day. A client could
+download these, but finding all versions of a package, or the first
+snapshot of a version, would need thousands of downloads.
+
+### An index of all binaries
+
+A single file listing every binary of every package would be very large
+for CRAN (cli alone has over 3,000 rows), and almost all of it would be
+irrelevant for any one project. One small file per package means a
+client only downloads what it needs, and the requests can run in
+parallel.
+
+### JSON instead of DCF and TSV
+
+JSON would be easier to parse with general tools, but DCF is what R and
+existing R tools already read, and `ALLPACKAGES` is a valid `PACKAGES`
+file. TSV keeps the binary indices small and fast to parse.
