@@ -15,8 +15,8 @@ only get it by scraping several services. The format is plain DCF and
 TSV, compressed with zstd, so it is easy to produce and easy to read.
 
 Posit Package Manager (P3M) data for CRAN and Bioconductor is published
-in this format at `https://ppm.r-pkg.org` and
-`https://ppm-bioc.r-pkg.org`. `rig` is the reference client, and uses
+in this format at `https://ppm.r-pkg.org/v1` and
+`https://ppm-bioc.r-pkg.org/v1`. `rig` is the reference client, and uses
 these files to solve and lock `rproj.toml` projects, see [Tidyup
 9](009-rproj-toml.md) and [Tidyup 11](011-rproj-lock.md).
 
@@ -89,8 +89,8 @@ The current instances are:
 
 | Repository | Base URL |
 |----|----|
-| CRAN | `https://ppm.r-pkg.org` |
-| Bioconductor release `<v>` | `https://ppm-bioc.r-pkg.org/<v>`, e.g. `https://ppm-bioc.r-pkg.org/3.22` |
+| CRAN | `https://ppm.r-pkg.org/v1` |
+| Bioconductor release `<v>` | `https://ppm-bioc.r-pkg.org/v1/<v>`, e.g. `https://ppm-bioc.r-pkg.org/v1/3.22` |
 
 ### `METADATA`
 
@@ -108,9 +108,7 @@ Fields:
 - `Generated`: optional, the time the repository last wrote the files,
   in RFC 3339 format.
 
-Readers must ignore fields they do not know. If `METADATA` is missing,
-i.e. the server returns 404, or it has no `Format-Version` field, the
-version is 0.0.
+Readers must ignore fields they do not know.
 
 `METADATA` is small and not compressed, so clients can check the version
 before they download the much larger `ALLPACKAGES.zst`.
@@ -490,13 +488,7 @@ is newer than `1.9`. A repository gives the version in the
 `Format-Version` field of `METADATA`, and in a
 `# Format-Version: <major>.<minor>` comment at the start of every
 `ALLPACKAGES`, `ARCHIVEDPACKAGES` and binary index file. All of these
-have the same version.
-
-A missing version means version 0.0: a missing `METADATA` file, a
-`METADATA` file without `Format-Version`, or a data file without a
-`# Format-Version` comment. Version 0.0 is the format that the P3M
-instances served before this tidyup, see
-[Implementations](#implementations). This tidyup specifies version 1.0.
+have the same version. This tidyup specifies version 1.0.
 
 Changes that old readers can still read increase the minor version: new
 fields in the DCF files, new columns in the binary indices, new
@@ -508,8 +500,10 @@ that the repository does not provide it.
 
 Changes that old readers cannot read increase the major version and
 reset the minor version to zero. The repository serves the new major
-version under a new base URL, e.g. `<base>/v2/`, so it can serve the old
-and the new versions side by side, and old clients keep working.
+version under a new base URL, so it can serve the old and the new
+versions side by side, and old clients keep working. E.g. the P3M
+instances serve version 1 under `https://ppm.r-pkg.org/v1`, and would
+serve version 2 under `https://ppm.r-pkg.org/v2`.
 
 Rules for readers:
 
@@ -529,17 +523,12 @@ Rules for readers:
 ### Server
 
 The CRAN and Bioconductor instances are generated from P3M data and
-updated daily. They use slightly different `ALLPACKAGES` keys and
-different column names in the binary tables currently, this will be
-standardized as the this specification matures. They do not have version
-markers yet, so they are version 0.0.
+updated daily. They serve version 1.0 of the format.
 
-The version 0.0 binary indices use the P3M platform names, and a
-separate `arch` column with `x86_64` or `arm64`. This table maps every
-P3M platform with binaries to the platforms of this tidyup. `<arch>` is
-`x86_64` or `aarch64`, P3M has `aarch64` binaries for `macos`,
-`manylinux_2_28`, `noble`, `resolute`, `rhel9` and `rhel10`, and
-`x86_64` binaries for all of them.
+This table maps every P3M platform with binaries to the platforms of
+this tidyup. `<arch>` is `x86_64` or `aarch64`, P3M has `aarch64`
+binaries for `macos`, `manylinux_2_28`, `noble`, `resolute`, `rhel9` and
+`rhel10`, and `x86_64` binaries for all of them.
 
 | P3M platform | Platform |
 |----|----|
